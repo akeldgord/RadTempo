@@ -22,3 +22,11 @@ if (process.env.NODE_ENV !== "production") {
 
 export const db = drizzle(sql, { schema });
 export { sql };
+
+export type Database = typeof db;
+
+/** Either the top-level `db` or a transaction handle (`db.transaction`'s
+ * callback argument). Feature services accept this so callers can compose
+ * multiple service calls inside one transaction. */
+export type DbClient =
+  Database | Parameters<Parameters<Database["transaction"]>[0]>[0];
