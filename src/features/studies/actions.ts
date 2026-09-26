@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { db } from "@/db";
 import { requireUser } from "@/server/auth-helpers";
+import { assertNotMaintenance } from "@/server/settings";
 import { type ActionResult, toActionError } from "@/server/action-result";
 import * as studiesService from "./service";
 import type { HomeSections, StudyType } from "./service";
@@ -58,6 +59,7 @@ export async function createStudyTypeAction(
 ): Promise<ActionResult<StudyType>> {
   try {
     const user = await requireUser();
+    await assertNotMaintenance();
     const parsed = createSchema.parse(input);
     const data = await studiesService.createStudyType(db, user.id, parsed);
     revalidateStudyPaths();
@@ -73,6 +75,7 @@ export async function updateStudyTypeAction(
 ): Promise<ActionResult<StudyType>> {
   try {
     const user = await requireUser();
+    await assertNotMaintenance();
     const id = uuidSchema.parse(studyTypeId);
     const parsed = updateSchema.parse(input);
     const data = await studiesService.updateStudyType(db, user.id, id, parsed);
@@ -89,6 +92,7 @@ export async function setFavoriteAction(
 ): Promise<ActionResult<StudyType>> {
   try {
     const user = await requireUser();
+    await assertNotMaintenance();
     const id = uuidSchema.parse(studyTypeId);
     const parsedFavorite = z.boolean().parse(favorite);
     const data = await studiesService.setFavorite(
@@ -109,6 +113,7 @@ export async function deleteStudyTypeAction(
 ): Promise<ActionResult<{ deletedTimingsCount: number }>> {
   try {
     const user = await requireUser();
+    await assertNotMaintenance();
     const id = uuidSchema.parse(studyTypeId);
     const data = await studiesService.deleteStudyType(db, user.id, id);
     revalidateStudyPaths();
@@ -137,6 +142,7 @@ export async function reorderStudyTypesAction(
 ): Promise<ActionResult<null>> {
   try {
     const user = await requireUser();
+    await assertNotMaintenance();
     const ids = z.array(uuidSchema).parse(orderedIds);
     await studiesService.reorderStudyTypes(db, user.id, ids);
     revalidateStudyPaths();

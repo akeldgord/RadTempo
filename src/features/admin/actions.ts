@@ -7,7 +7,7 @@ import {
   updateInstanceSettings,
 } from "@/server/settings";
 import { isSmtpConfigured, sendMail } from "@/server/mailer";
-import { sendTelemetry, TELEMETRY_FIELDS } from "@/features/admin/telemetry";
+import { sendTelemetry } from "@/features/admin/telemetry";
 import { getAppVersion } from "@/features/admin/system";
 import {
   AdminActionError,
@@ -275,5 +275,3 @@ export async function setMaintenanceModeAction(
     return { ok: false, error: errorMessage(error) };
   }
 }
-
-export { TELEMETRY_FIELDS };

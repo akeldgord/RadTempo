@@ -15,6 +15,7 @@ async function userCount(): Promise<number> {
 export const auth = betterAuth({
   baseURL: process.env.APP_URL ?? "http://localhost:3000",
   secret: process.env.AUTH_SECRET,
+  trustedOrigins: process.env.APP_URL ? [process.env.APP_URL] : undefined,
   database: drizzleAdapter(db, {
     provider: "pg",
     schema,
@@ -69,8 +70,12 @@ export const auth = betterAuth({
   rateLimit: {
     enabled: true,
     storage: "database",
+    // General ceiling across all other Better Auth endpoints for a given
+    // IP (session checks, sign-out, etc.) — left at Better Auth's own
+    // default rather than tightened further, since the security-relevant
+    // control the SPEC calls for is the login rate limit below.
     window: 60,
-    max: 20,
+    max: 100,
     customRules: {
       "/sign-in/email": { window: 60, max: 5 },
       "/sign-up/email": { window: 60, max: 5 },

@@ -4,7 +4,10 @@ import { achievementEvents, timingEntries, timingEntryTags } from "@/db/schema";
 import * as studiesService from "@/features/studies/service";
 import * as tagsService from "@/features/tags/service";
 import * as timerService from "@/features/timer/service";
-import { getDashboardData, getStudyAnalytics } from "@/features/analytics/service";
+import {
+  getDashboardData,
+  getStudyAnalytics,
+} from "@/features/analytics/service";
 import { syncAchievements } from "@/features/achievements/service";
 import type { Complexity } from "@/features/analytics/types";
 import { NotFoundError } from "@/server/errors";
@@ -226,13 +229,19 @@ describe("combined studies", () => {
       durationMs: 17 * 60_000,
     });
 
-    const componentAnalytics = await getStudyAnalytics(db, userId, component.id);
+    const componentAnalytics = await getStudyAnalytics(
+      db,
+      userId,
+      component.id,
+    );
     const combinedAnalytics = await getStudyAnalytics(db, userId, combined.id);
 
     expect(componentAnalytics.stats.totalCount).toBe(1);
     expect(combinedAnalytics.stats.totalCount).toBe(2);
     expect(
-      combinedAnalytics.recentCases.every((c) => c.rawDurationMs !== 5 * 60_000),
+      combinedAnalytics.recentCases.every(
+        (c) => c.rawDurationMs !== 5 * 60_000,
+      ),
     ).toBe(true);
   });
 });

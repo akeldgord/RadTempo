@@ -119,6 +119,7 @@ export function TimerBar() {
           </div>
           {!hideElapsed ? (
             <span
+              data-testid="timer-elapsed"
               className="font-mono text-lg tabular-nums text-foreground"
               aria-live="off"
             >

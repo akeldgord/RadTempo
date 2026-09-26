@@ -32,11 +32,13 @@ import type {
 } from "@/features/timer/service";
 import type { Complexity } from "@/features/analytics/types";
 import { updatePreferencesAction } from "@/features/preferences/actions";
+import type { NewlyEarnedAchievement } from "@/features/achievements/service";
 
 export interface PostCasePanelState {
   entry: CompletedEntrySummary;
   feedbackText: string;
   durationText: string;
+  newAchievements: NewlyEarnedAchievement[];
 }
 
 interface TimerContextValue {
@@ -209,6 +211,7 @@ export function TimerProvider({
       entry: result.data.entry,
       feedbackText: result.data.feedbackText,
       durationText: result.data.durationText,
+      newAchievements: result.data.newAchievements,
     });
     return { ok: true };
   }, []);

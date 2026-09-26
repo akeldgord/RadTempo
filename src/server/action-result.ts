@@ -34,6 +34,13 @@ export function toActionError<T>(
       return { ok: false, error: error.message };
     }
   }
-  console.error(fallbackMessage, error);
+  // Log only the error's name/message/stack, never the error object itself:
+  // some errors (e.g. Zod validation errors) can otherwise end up printing
+  // the invalid input, which may include user-entered study/tag names.
+  const safe =
+    error instanceof Error
+      ? { name: error.name, message: error.message, stack: error.stack }
+      : String(error);
+  console.error(fallbackMessage, safe);
   return { ok: false, error: fallbackMessage };
 }

@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { db } from "@/db";
 import { requireUser } from "@/server/auth-helpers";
+import { assertNotMaintenance } from "@/server/settings";
 import { type ActionResult, toActionError } from "@/server/action-result";
 import * as tagsService from "./service";
 import type { Tag } from "./service";
@@ -35,6 +36,7 @@ export async function createTagAction(
 ): Promise<ActionResult<Tag>> {
   try {
     const user = await requireUser();
+    await assertNotMaintenance();
     const parsed = createSchema.parse(input);
     const data = await tagsService.createTag(db, user.id, parsed);
     revalidatePath("/settings");
@@ -50,6 +52,7 @@ export async function updateTagAction(
 ): Promise<ActionResult<Tag>> {
   try {
     const user = await requireUser();
+    await assertNotMaintenance();
     const id = uuidSchema.parse(tagId);
     const parsed = updateSchema.parse(input);
     const data = await tagsService.updateTag(db, user.id, id, parsed);
@@ -65,6 +68,7 @@ export async function deleteTagAction(
 ): Promise<ActionResult<null>> {
   try {
     const user = await requireUser();
+    await assertNotMaintenance();
     const id = uuidSchema.parse(tagId);
     await tagsService.deleteTag(db, user.id, id);
     revalidatePath("/settings");

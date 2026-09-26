@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { db } from "@/db";
 import { requireUser } from "@/server/auth-helpers";
+import { assertNotMaintenance } from "@/server/settings";
 import { type ActionResult, toActionError } from "@/server/action-result";
 import { syncAchievements } from "@/features/achievements/service";
 import type { NewlyEarnedAchievement } from "@/features/achievements/service";
@@ -63,6 +64,7 @@ export async function startTimerAction(
 ): Promise<ActionResult<TimerState>> {
   try {
     const user = await requireUser();
+    await assertNotMaintenance();
     const id = uuidSchema.parse(studyTypeId);
     const { timer } = await timerService.startTimer(db, user.id, id);
     revalidateTimerPaths();
@@ -77,6 +79,7 @@ export async function pauseTimerAction(
 ): Promise<ActionResult<TimerState>> {
   try {
     const user = await requireUser();
+    await assertNotMaintenance();
     const id = uuidSchema.parse(entryId);
     const data = await timerService.pauseTimer(db, user.id, id);
     revalidateTimerPaths();
@@ -91,6 +94,7 @@ export async function resumeTimerAction(
 ): Promise<ActionResult<TimerState>> {
   try {
     const user = await requireUser();
+    await assertNotMaintenance();
     const id = uuidSchema.parse(entryId);
     const data = await timerService.resumeTimer(db, user.id, id);
     revalidateTimerPaths();
@@ -105,6 +109,7 @@ export async function finishTimerAction(
 ): Promise<ActionResult<FinishActionResult>> {
   try {
     const user = await requireUser();
+    await assertNotMaintenance();
     const id = uuidSchema.parse(entryId);
     const data = await timerService.finishTimer(db, user.id, id);
     const newAchievements = await syncAchievements(db, user.id);
@@ -123,6 +128,7 @@ export async function discardActiveTimerAction(
 ): Promise<ActionResult<null>> {
   try {
     const user = await requireUser();
+    await assertNotMaintenance();
     const id = uuidSchema.parse(entryId);
     await timerService.discardActiveTimer(db, user.id, id);
     revalidateTimerPaths();
@@ -138,6 +144,7 @@ export async function classifyEntryAction(
 ): Promise<ActionResult<CompletedEntrySummary>> {
   try {
     const user = await requireUser();
+    await assertNotMaintenance();
     const id = uuidSchema.parse(entryId);
     const parsed = classifySchema.parse(input);
     const data = await timerService.classifyEntry(db, user.id, id, parsed);
@@ -153,6 +160,7 @@ export async function finalizeClassificationAction(
 ): Promise<ActionResult<CompletedEntrySummary>> {
   try {
     const user = await requireUser();
+    await assertNotMaintenance();
     const id = uuidSchema.parse(entryId);
     const data = await timerService.finalizeClassification(db, user.id, id);
     await syncAchievements(db, user.id);
@@ -168,6 +176,7 @@ export async function deleteEntryAction(
 ): Promise<ActionResult<null>> {
   try {
     const user = await requireUser();
+    await assertNotMaintenance();
     const id = uuidSchema.parse(entryId);
     await timerService.deleteEntry(db, user.id, id);
     // Achievements are not revoked on deletion (SPEC "Gamification"); this

@@ -7,6 +7,7 @@ import type { Tag } from "@/features/tags/service";
 import type { Complexity } from "@/features/analytics/types";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { AchievementToast } from "@/components/achievements/achievement-toast";
 
 const COMPLEXITIES: { value: Complexity; label: string }[] = [
   { value: "EASY", label: "Easy" },
@@ -170,6 +171,13 @@ export function PostCasePanel() {
           </p>
         )}
       </div>
+
+      {panel.newAchievements.length > 0 && (
+        <AchievementToast
+          key={panel.entry.id}
+          achievements={panel.newAchievements}
+        />
+      )}
     </div>
   );
 }

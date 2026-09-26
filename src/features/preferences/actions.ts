@@ -4,17 +4,32 @@ import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { db } from "@/db";
 import { requireUser } from "@/server/auth-helpers";
+import { assertNotMaintenance } from "@/server/settings";
 import { type ActionResult, toActionError } from "@/server/action-result";
 import * as preferencesService from "./service";
 import type { Preferences } from "./service";
 
-const shortcutsSchema = z.object({
-  openStudyPicker: z.string().min(1).max(20),
-  startFavorite: z.array(z.string().min(1).max(20)),
-  pauseResume: z.string().min(1).max(20),
-  finish: z.string().min(1).max(20),
-  hideShowTimer: z.string().min(1).max(20),
-});
+const shortcutsSchema = z
+  .object({
+    openStudyPicker: z.string().min(1).max(20),
+    startFavorite: z.array(z.string().min(1).max(20)).max(9),
+    pauseResume: z.string().min(1).max(20),
+    finish: z.string().min(1).max(20),
+    hideShowTimer: z.string().min(1).max(20),
+  })
+  .refine(
+    (s) => {
+      const keys = [
+        s.openStudyPicker,
+        ...s.startFavorite,
+        s.pauseResume,
+        s.finish,
+        s.hideShowTimer,
+      ].map((k) => k.toLowerCase());
+      return new Set(keys).size === keys.length;
+    },
+    { message: "Each shortcut must use a different key." },
+  );
 
 const updateSchema = z.object({
   theme: z.enum(["light", "dark", "system"]).optional(),
@@ -39,6 +54,7 @@ export async function updatePreferencesAction(
 ): Promise<ActionResult<Preferences>> {
   try {
     const user = await requireUser();
+    await assertNotMaintenance();
     const parsed = updateSchema.parse(input);
     const data = await preferencesService.updatePreferences(
       db,
@@ -57,6 +73,7 @@ export async function resetKeyboardShortcutsAction(): Promise<
 > {
   try {
     const user = await requireUser();
+    await assertNotMaintenance();
     const data = await preferencesService.resetKeyboardShortcuts(db, user.id);
     revalidatePath("/settings");
     return { ok: true, data };
