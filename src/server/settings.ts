@@ -62,6 +62,27 @@ export async function getInstanceSettings(): Promise<InstanceSettings> {
   };
 }
 
+export class MaintenanceModeError extends Error {
+  constructor(message = "The instance is in maintenance mode") {
+    super(message);
+    this.name = "MaintenanceModeError";
+  }
+}
+
+/**
+ * Throws `MaintenanceModeError` while the instance is in maintenance mode.
+ * Features call this at the top of their mutations so a restore-in-progress
+ * (or an admin-flagged maintenance window) blocks writes. The restore flow
+ * itself never calls this, since it is what puts the instance into and out
+ * of maintenance mode.
+ */
+export async function assertNotMaintenance(): Promise<void> {
+  const settings = await getInstanceSettings();
+  if (settings.maintenanceMode) {
+    throw new MaintenanceModeError();
+  }
+}
+
 export async function updateInstanceSettings(
   patch: Partial<
     Pick<
