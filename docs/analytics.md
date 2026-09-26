@@ -8,7 +8,7 @@ A case counts toward your analytics if it's **COMPLETED** and none of its tags a
 
 ## Complexity factors (learned per user)
 
-Not every case of a given study type is equally hard, and complexity ratings (Easy/Typical/Difficult) are inherently subjective from person to person. So RadTempo learns *your own* complexity factors per study type, rather than using a fixed multiplier:
+Not every case of a given study type is equally hard, and complexity ratings (Easy/Typical/Difficult) are inherently subjective from person to person. So RadTempo learns _your own_ complexity factors per study type, rather than using a fixed multiplier:
 
 - For a study type with at least 5 eligible cases, RadTempo computes the median raw duration for that study type.
 - Each eligible case's duration is expressed as a ratio to that median.

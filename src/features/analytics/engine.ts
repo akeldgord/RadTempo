@@ -19,7 +19,7 @@ import type {
   StudyStats,
   TrendBucket,
   TrendPoint,
-} from './types';
+} from "./types";
 
 export const RECENT_WINDOW = 10;
 export const COMPARISON_WINDOW = 20;
@@ -29,7 +29,7 @@ export const MIN_FACTOR_N = 5;
 const MS_PER_HOUR = 3_600_000;
 const MS_PER_DAY = 86_400_000;
 
-const COMPLEXITIES: Complexity[] = ['EASY', 'TYPICAL', 'DIFFICULT'];
+const COMPLEXITIES: Complexity[] = ["EASY", "TYPICAL", "DIFFICULT"];
 
 // ---------------------------------------------------------------------------
 // Basic math
@@ -66,7 +66,11 @@ function rawDuration(c: CaseRecord): number {
 // Complexity factors
 // ---------------------------------------------------------------------------
 
-const IDENTITY_FACTOR: ComplexityFactor = { factor: 1.0, n: 0, provisional: true };
+const IDENTITY_FACTOR: ComplexityFactor = {
+  factor: 1.0,
+  n: 0,
+  provisional: true,
+};
 
 /**
  * Learn per-user complexity adjustment factors.
@@ -83,7 +87,9 @@ const IDENTITY_FACTOR: ComplexityFactor = { factor: 1.0, n: 0, provisional: true
  *   few ratios to normalize against, factor = 1.0 and the category is
  *   marked `provisional`.
  */
-export function computeComplexityFactors(cases: CaseRecord[]): ComplexityFactors {
+export function computeComplexityFactors(
+  cases: CaseRecord[],
+): ComplexityFactors {
   const byStudy = new Map<string, CaseRecord[]>();
   for (const c of cases) {
     if (!isEligible(c)) continue;
@@ -135,7 +141,10 @@ export function computeComplexityFactors(cases: CaseRecord[]): ComplexityFactors
 }
 
 /** raw duration adjusted for learned complexity factor (adjusted = raw / factor). */
-export function adjustDuration(c: CaseRecord, factors: ComplexityFactors): number {
+export function adjustDuration(
+  c: CaseRecord,
+  factors: ComplexityFactors,
+): number {
   const factor = factors[c.complexity]?.factor ?? 1.0;
   return rawDuration(c) / (factor === 0 ? 1.0 : factor);
 }
@@ -146,10 +155,10 @@ export function adjustDuration(c: CaseRecord, factors: ComplexityFactors): numbe
 
 /** Maturity bucket by eligible case count: 0 None, 1-4 Early, 5-14 Building, 15+ Established. */
 export function maturity(eligibleCount: number): Maturity {
-  if (eligibleCount <= 0) return 'NONE';
-  if (eligibleCount < MIN_STUDY_N) return 'EARLY';
-  if (eligibleCount < 15) return 'BUILDING';
-  return 'ESTABLISHED';
+  if (eligibleCount <= 0) return "NONE";
+  if (eligibleCount < MIN_STUDY_N) return "EARLY";
+  if (eligibleCount < 15) return "BUILDING";
+  return "ESTABLISHED";
 }
 
 // ---------------------------------------------------------------------------
@@ -169,29 +178,44 @@ export function computeStudyStats(
   const eligibleAdjusted = eligible.map((c) => adjustDuration(c, factors));
   const eligibleRaw = eligible.map(rawDuration);
 
-  const recentSlice = eligible.slice(Math.max(0, eligibleCount - RECENT_WINDOW));
+  const recentSlice = eligible.slice(
+    Math.max(0, eligibleCount - RECENT_WINDOW),
+  );
   const recentAdjusted = recentSlice.map((c) => adjustDuration(c, factors));
   const recentPaceMs = median(recentAdjusted);
 
   const comparisonEnd = eligibleCount - recentSlice.length;
   const comparisonStart = Math.max(0, comparisonEnd - COMPARISON_WINDOW);
   const comparisonSlice = eligible.slice(comparisonStart, comparisonEnd);
-  const comparisonAdjusted = comparisonSlice.map((c) => adjustDuration(c, factors));
+  const comparisonAdjusted = comparisonSlice.map((c) =>
+    adjustDuration(c, factors),
+  );
   const comparisonPaceMs = median(comparisonAdjusted);
 
   let improvement: number | null = null;
-  if (recentPaceMs !== null && comparisonPaceMs !== null && comparisonPaceMs !== 0) {
+  if (
+    recentPaceMs !== null &&
+    comparisonPaceMs !== null &&
+    comparisonPaceMs !== 0
+  ) {
     improvement = (comparisonPaceMs - recentPaceMs) / comparisonPaceMs;
   }
 
-  const personalBestAdjusted = eligibleAdjusted.length ? Math.min(...eligibleAdjusted) : null;
+  const personalBestAdjusted = eligibleAdjusted.length
+    ? Math.min(...eligibleAdjusted)
+    : null;
   const personalBestRaw = eligibleRaw.length ? Math.min(...eligibleRaw) : null;
 
-  const complexityDistribution: ComplexityDistribution = { EASY: 0, TYPICAL: 0, DIFFICULT: 0 };
+  const complexityDistribution: ComplexityDistribution = {
+    EASY: 0,
+    TYPICAL: 0,
+    DIFFICULT: 0,
+  };
   for (const c of sorted) complexityDistribution[c.complexity]++;
 
   const totalActiveMs = sorted.reduce((sum, c) => sum + c.activeDurationMs, 0);
-  const casesPerHour = totalActiveMs > 0 ? totalCount / (totalActiveMs / MS_PER_HOUR) : null;
+  const casesPerHour =
+    totalActiveMs > 0 ? totalCount / (totalActiveMs / MS_PER_HOUR) : null;
 
   return {
     totalCount,
@@ -220,7 +244,11 @@ function utcWeekStart(d: Date): Date {
   const day = d.getUTCDay(); // 0=Sun..6=Sat
   const diffToMonday = (day + 6) % 7; // days since Monday
   const start = new Date(
-    Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate() - diffToMonday),
+    Date.UTC(
+      d.getUTCFullYear(),
+      d.getUTCMonth(),
+      d.getUTCDate() - diffToMonday,
+    ),
   );
   return start;
 }
@@ -242,7 +270,10 @@ export function computeTrend(
   const groups = new Map<string, { raw: number[]; adjusted: number[] }>();
 
   for (const c of eligible) {
-    const bucketDate = bucket === 'week' ? utcWeekStart(c.finishedAt) : utcMonthStart(c.finishedAt);
+    const bucketDate =
+      bucket === "week"
+        ? utcWeekStart(c.finishedAt)
+        : utcMonthStart(c.finishedAt);
     const key = toIsoDate(bucketDate);
     let g = groups.get(key);
     if (!g) {
@@ -263,7 +294,9 @@ export function computeTrend(
     });
   }
 
-  points.sort((a, b) => (a.bucketStart < b.bucketStart ? -1 : a.bucketStart > b.bucketStart ? 1 : 0));
+  points.sort((a, b) =>
+    a.bucketStart < b.bucketStart ? -1 : a.bucketStart > b.bucketStart ? 1 : 0,
+  );
   return points;
 }
 
@@ -280,7 +313,9 @@ export function personalPercentile(
   priorCasesSameStudy: CaseRecord[],
   factors: ComplexityFactors,
 ): number | null {
-  const priorsEligible = priorCasesSameStudy.filter(isEligible).map((c) => adjustDuration(c, factors));
+  const priorsEligible = priorCasesSameStudy
+    .filter(isEligible)
+    .map((c) => adjustDuration(c, factors));
   if (priorsEligible.length === 0) return null;
   const targetAdjusted = adjustDuration(targetCase, factors);
   const slowerCount = priorsEligible.filter((v) => v > targetAdjusted).length;
@@ -308,22 +343,27 @@ export function postCaseFeedback(
   const priorEligible = priorCases.filter(isEligible);
 
   if (priorEligible.length === 0) {
-    return { kind: 'BASELINE_STARTED', caseNumber, recentPaceMs: null };
+    return { kind: "BASELINE_STARTED", caseNumber, recentPaceMs: null };
   }
 
   if (priorEligible.length < MIN_STUDY_N) {
-    return { kind: 'BASELINE_BUILDING', caseNumber, recentPaceMs: null };
+    return { kind: "BASELINE_BUILDING", caseNumber, recentPaceMs: null };
   }
 
-  const recentPriorSlice = priorEligible.slice(Math.max(0, priorEligible.length - RECENT_WINDOW));
-  const recentPriorAdjusted = recentPriorSlice.map((c) => adjustDuration(c, factors));
+  const recentPriorSlice = priorEligible.slice(
+    Math.max(0, priorEligible.length - RECENT_WINDOW),
+  );
+  const recentPriorAdjusted = recentPriorSlice.map((c) =>
+    adjustDuration(c, factors),
+  );
   const recentPaceMs = median(recentPriorAdjusted) as number;
 
   const targetAdjusted = adjustDuration(targetCase, factors);
-  const percentVsRecent = recentPaceMs !== 0 ? (recentPaceMs - targetAdjusted) / recentPaceMs : 0;
+  const percentVsRecent =
+    recentPaceMs !== 0 ? (recentPaceMs - targetAdjusted) / recentPaceMs : 0;
 
   return {
-    kind: 'COMPARISON',
+    kind: "COMPARISON",
     caseNumber,
     percentVsRecent,
     recentPaceMs,
@@ -336,11 +376,11 @@ export function postCaseFeedback(
  */
 export function formatFeedbackText(feedback: PostCaseFeedback): string {
   switch (feedback.kind) {
-    case 'BASELINE_STARTED':
-      return 'Personal baseline started';
-    case 'BASELINE_BUILDING':
+    case "BASELINE_STARTED":
+      return "Personal baseline started";
+    case "BASELINE_BUILDING":
       return `Baseline building — case ${feedback.caseNumber}`;
-    case 'COMPARISON': {
+    case "COMPARISON": {
       const pct = feedback.percentVsRecent ?? 0;
       const magnitude = formatPercent(Math.abs(pct));
       if (pct >= 0) {
@@ -349,7 +389,7 @@ export function formatFeedbackText(feedback: PostCaseFeedback): string {
       return `${magnitude}% above your recent comparable pace`;
     }
     default:
-      return '';
+      return "";
   }
 }
 
@@ -358,14 +398,16 @@ export function formatFeedbackText(feedback: PostCaseFeedback): string {
 // ---------------------------------------------------------------------------
 
 function utcDayKey(d: Date): string {
-  return toIsoDate(new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate())));
+  return toIsoDate(
+    new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate())),
+  );
 }
 
 function computeReadingDayStreak(days: string[], now: Date): ReadingDayStreak {
   if (days.length === 0) return { current: 0, longest: 0 };
 
   const uniqueSorted = [...new Set(days)].sort();
-  const dayMs = uniqueSorted.map((d) => Date.parse(d + 'T00:00:00.000Z'));
+  const dayMs = uniqueSorted.map((d) => Date.parse(d + "T00:00:00.000Z"));
 
   let longest = 1;
   let run = 1;
@@ -381,7 +423,7 @@ function computeReadingDayStreak(days: string[], now: Date): ReadingDayStreak {
   // Current streak: consecutive run ending at the latest activity day, but
   // only "current" if that latest day is today or yesterday relative to `now`.
   const lastDayMs = dayMs[dayMs.length - 1];
-  const nowDayMs = Date.parse(utcDayKey(now) + 'T00:00:00.000Z');
+  const nowDayMs = Date.parse(utcDayKey(now) + "T00:00:00.000Z");
   const gapFromNow = (nowDayMs - lastDayMs) / MS_PER_DAY;
 
   let current = 0;
@@ -396,10 +438,17 @@ function computeReadingDayStreak(days: string[], now: Date): ReadingDayStreak {
   return { current, longest };
 }
 
-export function computeOverview(allCases: CaseRecord[], now: Date = new Date()): OverviewStats {
+export function computeOverview(
+  allCases: CaseRecord[],
+  now: Date = new Date(),
+): OverviewStats {
   const completedCases = allCases.length;
-  const totalActiveMs = allCases.reduce((sum, c) => sum + c.activeDurationMs, 0);
-  const timedCasesPerHour = totalActiveMs > 0 ? completedCases / (totalActiveMs / MS_PER_HOUR) : null;
+  const totalActiveMs = allCases.reduce(
+    (sum, c) => sum + c.activeDurationMs,
+    0,
+  );
+  const timedCasesPerHour =
+    totalActiveMs > 0 ? completedCases / (totalActiveMs / MS_PER_HOUR) : null;
   const days = allCases.map((c) => utcDayKey(c.finishedAt));
   const readingDayStreak = computeReadingDayStreak(days, now);
 
@@ -416,7 +465,7 @@ export function formatDuration(ms: number): string {
   const hours = Math.floor(totalSeconds / 3600);
   const minutes = Math.floor((totalSeconds % 3600) / 60);
   const seconds = totalSeconds % 60;
-  const pad = (n: number) => String(n).padStart(2, '0');
+  const pad = (n: number) => String(n).padStart(2, "0");
   if (hours > 0) {
     return `${hours}:${pad(minutes)}:${pad(seconds)}`;
   }
@@ -429,5 +478,7 @@ export function formatPercent(fraction: number): string {
   const rounded = Math.round(pct * 10) / 10;
   // Avoid "-0"
   const normalized = rounded === 0 ? 0 : rounded;
-  return Number.isInteger(normalized) ? String(normalized) : normalized.toFixed(1);
+  return Number.isInteger(normalized)
+    ? String(normalized)
+    : normalized.toFixed(1);
 }

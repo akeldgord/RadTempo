@@ -2,25 +2,25 @@
 
 All configuration is via environment variables, set in `.env` (copied from `.env.example`) and read by the `app` container. Nothing here is configurable from the admin UI unless noted.
 
-| Variable | Meaning | Default | Required |
-|---|---|---|---|
-| `DATABASE_URL` | Postgres connection string used by the app (e.g. `postgres://radtempo:<password>@postgres:5432/radtempo`). | none | Yes |
-| `AUTH_SECRET` | Secret key used by Better Auth to sign sessions and tokens. Generate with `openssl rand -base64 32`. Rotating it invalidates all existing sessions. | none | Yes |
-| `APP_URL` | The public, canonical URL of your instance (e.g. `https://radtempo.example.com` or `http://localhost:3000`). Used to build absolute links (invites, password resets) and validate auth origins. | none | Yes |
-| `REGISTRATION_MODE` | `invite_only` or `open`. Controls whether new accounts require an admin-issued invite. Changeable later by an admin in the UI. | `invite_only` | No |
-| `INITIAL_ADMIN_EMAIL` | Email for the initial admin account, created automatically on first boot if no users exist. If unset, the `/setup` wizard prompts for it instead. | none | No |
-| `INITIAL_ADMIN_PASSWORD` | Password for the initial admin account. Only used together with `INITIAL_ADMIN_EMAIL`. If either is unset, use the `/setup` wizard. | none | No |
-| `SMTP_HOST` | SMTP server hostname. Enables email delivery (verification, password reset, emailed invites) when set together with the other `SMTP_*` variables. | none | No |
-| `SMTP_PORT` | SMTP server port. | none | No (required if `SMTP_HOST` set) |
-| `SMTP_USERNAME` | SMTP auth username. | none | No |
-| `SMTP_PASSWORD` | SMTP auth password. Never shown in the UI once set. | none | No |
-| `SMTP_FROM` | "From" address used for outgoing email. | none | No (required if `SMTP_HOST` set) |
-| `EMAIL_VERIFICATION_REQUIRED` | If `true`, new accounts must verify their email before logging in. Only meaningful when SMTP is configured. | `false` | No |
-| `TELEMETRY_ENABLED` | Enables anonymous, instance-level telemetry. See [privacy.md](privacy.md) for the exact fields sent. | `false` | No |
-| `TELEMETRY_ENDPOINT` | URL telemetry is sent to. If unset, nothing is sent even if `TELEMETRY_ENABLED=true`. | none | No |
-| `DOMAIN` | Public hostname used by the bundled Caddy reverse proxy (`docker-compose.caddy.yml`) to request a TLS certificate. Only relevant if you use the bundled Caddy setup. | none | No (required for bundled Caddy) |
-| `POSTGRES_PASSWORD` | Password for the `postgres` service's database user. Must match the credentials embedded in `DATABASE_URL`. | none | Yes |
-| `PORT` | Internal port the Next.js server listens on inside the `app` container. Rarely needs changing; the container's exposed port is separate from any port you map to the host. | `3000` | No |
+| Variable                      | Meaning                                                                                                                                                                                         | Default       | Required                         |
+| ----------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------- | -------------------------------- |
+| `DATABASE_URL`                | Postgres connection string used by the app (e.g. `postgres://radtempo:<password>@postgres:5432/radtempo`).                                                                                      | none          | Yes                              |
+| `AUTH_SECRET`                 | Secret key used by Better Auth to sign sessions and tokens. Generate with `openssl rand -base64 32`. Rotating it invalidates all existing sessions.                                             | none          | Yes                              |
+| `APP_URL`                     | The public, canonical URL of your instance (e.g. `https://radtempo.example.com` or `http://localhost:3000`). Used to build absolute links (invites, password resets) and validate auth origins. | none          | Yes                              |
+| `REGISTRATION_MODE`           | `invite_only` or `open`. Controls whether new accounts require an admin-issued invite. Changeable later by an admin in the UI.                                                                  | `invite_only` | No                               |
+| `INITIAL_ADMIN_EMAIL`         | Email for the initial admin account, created automatically on first boot if no users exist. If unset, the `/setup` wizard prompts for it instead.                                               | none          | No                               |
+| `INITIAL_ADMIN_PASSWORD`      | Password for the initial admin account. Only used together with `INITIAL_ADMIN_EMAIL`. If either is unset, use the `/setup` wizard.                                                             | none          | No                               |
+| `SMTP_HOST`                   | SMTP server hostname. Enables email delivery (verification, password reset, emailed invites) when set together with the other `SMTP_*` variables.                                               | none          | No                               |
+| `SMTP_PORT`                   | SMTP server port.                                                                                                                                                                               | none          | No (required if `SMTP_HOST` set) |
+| `SMTP_USERNAME`               | SMTP auth username.                                                                                                                                                                             | none          | No                               |
+| `SMTP_PASSWORD`               | SMTP auth password. Never shown in the UI once set.                                                                                                                                             | none          | No                               |
+| `SMTP_FROM`                   | "From" address used for outgoing email.                                                                                                                                                         | none          | No (required if `SMTP_HOST` set) |
+| `EMAIL_VERIFICATION_REQUIRED` | If `true`, new accounts must verify their email before logging in. Only meaningful when SMTP is configured.                                                                                     | `false`       | No                               |
+| `TELEMETRY_ENABLED`           | Enables anonymous, instance-level telemetry. See [privacy.md](privacy.md) for the exact fields sent.                                                                                            | `false`       | No                               |
+| `TELEMETRY_ENDPOINT`          | URL telemetry is sent to. If unset, nothing is sent even if `TELEMETRY_ENABLED=true`.                                                                                                           | none          | No                               |
+| `DOMAIN`                      | Public hostname used by the bundled Caddy reverse proxy (`docker-compose.caddy.yml`) to request a TLS certificate. Only relevant if you use the bundled Caddy setup.                            | none          | No (required for bundled Caddy)  |
+| `POSTGRES_PASSWORD`           | Password for the `postgres` service's database user. Must match the credentials embedded in `DATABASE_URL`.                                                                                     | none          | Yes                              |
+| `PORT`                        | Internal port the Next.js server listens on inside the `app` container. Rarely needs changing; the container's exposed port is separate from any port you map to the host.                      | `3000`        | No                               |
 
 ## Notes
 

@@ -35,6 +35,7 @@ Users can delete their own account at any time from Settings, with explicit conf
 Telemetry is instance-level (never per-user) and **off by default**, controlled by a single admin toggle (`TELEMETRY_ENABLED`) plus a destination (`TELEMETRY_ENDPOINT`). If `TELEMETRY_ENDPOINT` is unset, nothing is sent even when enabled. The application behaves identically whether telemetry is on or off.
 
 **Allowed fields, if enabled:**
+
 - App version
 - Enabled feature flags
 - Aggregate event counts
@@ -42,6 +43,7 @@ Telemetry is instance-level (never per-user) and **off by default**, controlled 
 - Coarse environment information (e.g. OS/runtime type)
 
 **Never sent, under any circumstances:**
+
 - Email addresses or any other user identifier
 - Study type names
 - Case durations

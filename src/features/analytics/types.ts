@@ -6,9 +6,9 @@
  * dependencies and can be unit tested in isolation.
  */
 
-export type Complexity = 'EASY' | 'TYPICAL' | 'DIFFICULT';
+export type Complexity = "EASY" | "TYPICAL" | "DIFFICULT";
 
-export type Maturity = 'NONE' | 'EARLY' | 'BUILDING' | 'ESTABLISHED';
+export type Maturity = "NONE" | "EARLY" | "BUILDING" | "ESTABLISHED";
 
 /**
  * A single completed timing entry, as far as analytics cares.
@@ -79,9 +79,10 @@ export interface TrendPoint {
   count: number;
 }
 
-export type TrendBucket = 'week' | 'month';
+export type TrendBucket = "week" | "month";
 
-export type PostCaseFeedbackKind = 'BASELINE_STARTED' | 'BASELINE_BUILDING' | 'COMPARISON';
+export type PostCaseFeedbackKind =
+  "BASELINE_STARTED" | "BASELINE_BUILDING" | "COMPARISON";
 
 export interface PostCaseFeedback {
   kind: PostCaseFeedbackKind;

@@ -10,9 +10,13 @@
  * avoid repeat celebrations."
  */
 
-import type { CaseRecord, ComplexityFactors, StudyStats } from '../analytics/types';
-import { computeOverview } from '../analytics/engine';
-import { ACHIEVEMENT_DEFINITIONS, type AchievementKey } from './definitions';
+import type {
+  CaseRecord,
+  ComplexityFactors,
+  StudyStats,
+} from "../analytics/types";
+import { computeOverview } from "../analytics/engine";
+import { ACHIEVEMENT_DEFINITIONS, type AchievementKey } from "./definitions";
 
 export interface EarnedAchievement {
   key: AchievementKey;
@@ -37,36 +41,46 @@ export function evaluateAchievements(
 
   const completedCases = allCases.length;
   if (completedCases >= TIMED_10) {
-    earned.push({ key: 'timed_10', metadata: { completedCases } });
+    earned.push({ key: "timed_10", metadata: { completedCases } });
   }
   if (completedCases >= TIMED_50) {
-    earned.push({ key: 'timed_50', metadata: { completedCases } });
+    earned.push({ key: "timed_50", metadata: { completedCases } });
   }
   if (completedCases >= TIMED_100) {
-    earned.push({ key: 'timed_100', metadata: { completedCases } });
+    earned.push({ key: "timed_100", metadata: { completedCases } });
   }
 
   for (const [studyTypeId, stats] of Object.entries(statsByStudy)) {
     if (stats.totalCount >= STUDY_VOLUME_THRESHOLD) {
-      earned.push({ key: 'study_50', studyTypeId, metadata: { totalCount: stats.totalCount } });
+      earned.push({
+        key: "study_50",
+        studyTypeId,
+        metadata: { totalCount: stats.totalCount },
+      });
     }
 
-    if (stats.maturity === 'ESTABLISHED') {
+    if (stats.maturity === "ESTABLISHED") {
       earned.push({
-        key: 'first_established_benchmark',
+        key: "first_established_benchmark",
         studyTypeId,
         metadata: { eligibleCount: stats.eligibleCount },
       });
 
-      if (stats.improvement !== null && stats.improvement >= IMPROVEMENT_10_THRESHOLD) {
+      if (
+        stats.improvement !== null &&
+        stats.improvement >= IMPROVEMENT_10_THRESHOLD
+      ) {
         earned.push({
-          key: 'improvement_10',
+          key: "improvement_10",
           studyTypeId,
           metadata: { improvement: stats.improvement },
         });
-      } else if (stats.improvement !== null && stats.improvement >= IMPROVEMENT_5_THRESHOLD) {
+      } else if (
+        stats.improvement !== null &&
+        stats.improvement >= IMPROVEMENT_5_THRESHOLD
+      ) {
         earned.push({
-          key: 'improvement_5',
+          key: "improvement_5",
           studyTypeId,
           metadata: { improvement: stats.improvement },
         });
@@ -83,7 +97,7 @@ export function evaluateAchievements(
   const overview = computeOverview(allCases, latestFinishedAt ?? new Date(0));
   if (overview.readingDayStreak.longest >= READING_STREAK_THRESHOLD) {
     earned.push({
-      key: 'reading_streak_5',
+      key: "reading_streak_5",
       metadata: { longestStreak: overview.readingDayStreak.longest },
     });
   }
@@ -115,7 +129,7 @@ export function personalRecords(
   statsByStudy: Record<string, StudyStats>,
   factors: ComplexityFactors,
 ): PersonalRecords {
-  let fastest: PersonalRecords['fastestEligibleRead'] = null;
+  let fastest: PersonalRecords["fastestEligibleRead"] = null;
   for (const c of allCases) {
     if (c.excluded) continue;
     const factor = factors[c.complexity]?.factor ?? 1.0;
@@ -137,15 +151,27 @@ export function personalRecords(
     }
   }
 
-  let largestSustainedImprovement: PersonalRecords['largestSustainedImprovement'] = null;
+  let largestSustainedImprovement: PersonalRecords["largestSustainedImprovement"] =
+    null;
   for (const [studyTypeId, stats] of Object.entries(statsByStudy)) {
-    if (stats.maturity !== 'ESTABLISHED' || stats.improvement === null) continue;
-    if (largestSustainedImprovement === null || stats.improvement > largestSustainedImprovement.improvement) {
-      largestSustainedImprovement = { studyTypeId, improvement: stats.improvement };
+    if (stats.maturity !== "ESTABLISHED" || stats.improvement === null)
+      continue;
+    if (
+      largestSustainedImprovement === null ||
+      stats.improvement > largestSustainedImprovement.improvement
+    ) {
+      largestSustainedImprovement = {
+        studyTypeId,
+        improvement: stats.improvement,
+      };
     }
   }
 
-  return { fastestEligibleRead: fastest, bestRecentMedianByStudy, largestSustainedImprovement };
+  return {
+    fastestEligibleRead: fastest,
+    bestRecentMedianByStudy,
+    largestSustainedImprovement,
+  };
 }
 
 export { ACHIEVEMENT_DEFINITIONS };
