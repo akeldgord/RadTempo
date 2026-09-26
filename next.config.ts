@@ -14,6 +14,13 @@ const csp = [
 
 const nextConfig: NextConfig = {
   output: "standalone",
+  experimental: {
+    serverActions: {
+      // Import/export uploads a zip (data cap: 50MB); leave headroom for
+      // multipart/form-data overhead.
+      bodySizeLimit: "55mb",
+    },
+  },
   async headers() {
     return [
       {
@@ -27,6 +34,14 @@ const nextConfig: NextConfig = {
             key: "Permissions-Policy",
             value: "camera=(), microphone=(), geolocation=(), payment=()",
           },
+          ...(process.env.NODE_ENV === "production"
+            ? [
+                {
+                  key: "Strict-Transport-Security",
+                  value: "max-age=63072000; includeSubDomains",
+                },
+              ]
+            : []),
         ],
       },
     ];
