@@ -5,6 +5,8 @@ import { z } from "zod";
 import { db } from "@/db";
 import { requireUser } from "@/server/auth-helpers";
 import { type ActionResult, toActionError } from "@/server/action-result";
+import { syncAchievements } from "@/features/achievements/service";
+import type { NewlyEarnedAchievement } from "@/features/achievements/service";
 import * as timerService from "./service";
 import type {
   CompletedEntrySummary,
@@ -12,6 +14,12 @@ import type {
   HistoryRow,
   TimerState,
 } from "./service";
+
+export type FinishActionResult = FinishResult & {
+  /** Achievements newly earned as a result of this finish, if any. Additive
+   * only — never affects the saved case itself. */
+  newAchievements: NewlyEarnedAchievement[];
+};
 
 const uuidSchema = z.string().uuid();
 
@@ -35,6 +43,7 @@ function revalidateTimerPaths() {
   revalidatePath("/");
   revalidatePath("/history");
   revalidatePath("/dashboard");
+  revalidatePath("/achievements");
 }
 
 export async function getActiveTimerAction(): Promise<
@@ -93,13 +102,14 @@ export async function resumeTimerAction(
 
 export async function finishTimerAction(
   entryId: string,
-): Promise<ActionResult<FinishResult>> {
+): Promise<ActionResult<FinishActionResult>> {
   try {
     const user = await requireUser();
     const id = uuidSchema.parse(entryId);
     const data = await timerService.finishTimer(db, user.id, id);
+    const newAchievements = await syncAchievements(db, user.id);
     revalidateTimerPaths();
-    return { ok: true, data };
+    return { ok: true, data: { ...data, newAchievements } };
   } catch (error) {
     return toActionError(
       error,
@@ -145,6 +155,7 @@ export async function finalizeClassificationAction(
     const user = await requireUser();
     const id = uuidSchema.parse(entryId);
     const data = await timerService.finalizeClassification(db, user.id, id);
+    await syncAchievements(db, user.id);
     revalidateTimerPaths();
     return { ok: true, data };
   } catch (error) {
@@ -159,6 +170,11 @@ export async function deleteEntryAction(
     const user = await requireUser();
     const id = uuidSchema.parse(entryId);
     await timerService.deleteEntry(db, user.id, id);
+    // Achievements are not revoked on deletion (SPEC "Gamification"); this
+    // sync only covers the rare case where deleting one case's tags/complexity
+    // newly qualifies another achievement (e.g. after a correction). It never
+    // removes previously-earned achievement_events rows.
+    await syncAchievements(db, user.id);
     revalidateTimerPaths();
     return { ok: true, data: null };
   } catch (error) {

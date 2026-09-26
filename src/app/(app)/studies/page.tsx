@@ -1,10 +1,10 @@
-export default function StudiesPage() {
-  return (
-    <div className="flex flex-col gap-2">
-      <h1 className="text-2xl font-semibold text-foreground">Studies</h1>
-      <p className="text-sm text-muted">
-        Manage your study types: rename, reorder, favorite, or add custom types.
-      </p>
-    </div>
-  );
+import { db } from "@/db";
+import { requireUser } from "@/server/auth-helpers";
+import { listStudyTypes } from "@/features/studies/service";
+import { StudiesClient } from "./studies-client";
+
+export default async function StudiesPage() {
+  const user = await requireUser();
+  const studyTypes = await listStudyTypes(db, user.id);
+  return <StudiesClient initialStudyTypes={studyTypes} />;
 }

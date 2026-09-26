@@ -1,5 +1,6 @@
 import { sql } from "drizzle-orm";
 import {
+  bigint,
   boolean,
   index,
   integer,
@@ -119,7 +120,9 @@ export const rateLimit = pgTable("rate_limit", {
   id: uuid("id").primaryKey().defaultRandom(),
   key: text("key").notNull(),
   count: integer("count"),
-  lastRequest: integer("last_request"),
+  // Better Auth stores this as a millisecond epoch timestamp (Date.now()),
+  // which overflows a 32-bit integer — must be bigint, not integer.
+  lastRequest: bigint("last_request", { mode: "number" }),
 });
 
 // ---------------------------------------------------------------------------

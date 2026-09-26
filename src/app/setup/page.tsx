@@ -2,6 +2,12 @@ import { redirect } from "next/navigation";
 import { hasAnyUsers } from "@/server/setup-status";
 import { SetupForm } from "./setup-form";
 
+// This page's redirect depends only on a DB row count, with no dynamic API
+// call to force per-request rendering — without this it gets statically
+// prerendered at build time and would keep serving a stale "no users yet"
+// (or "already set up") decision forever.
+export const dynamic = "force-dynamic";
+
 export default async function SetupPage() {
   if (await hasAnyUsers()) {
     redirect("/login");

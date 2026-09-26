@@ -22,13 +22,24 @@ const navItems = [
   { href: "/settings", label: "Settings", icon: Settings },
 ];
 
-export function Sidebar({ isAdmin }: { isAdmin: boolean }) {
+export function Sidebar({
+  isAdmin,
+  className,
+  onNavigate,
+}: {
+  isAdmin: boolean;
+  className?: string;
+  onNavigate?: () => void;
+}) {
   const pathname = usePathname();
 
   return (
     <nav
       aria-label="Main navigation"
-      className="flex h-full w-56 flex-col gap-1 border-r border-border bg-card px-3 py-4"
+      className={cn(
+        "flex h-full w-56 flex-col gap-1 border-r border-border bg-card px-3 py-4",
+        className,
+      )}
     >
       <div className="px-3 pb-4 text-lg font-semibold text-foreground">
         RadTempo
@@ -40,6 +51,7 @@ export function Sidebar({ isAdmin }: { isAdmin: boolean }) {
           <Link
             key={href}
             href={href}
+            onClick={onNavigate}
             aria-current={active ? "page" : undefined}
             className={cn(
               "flex items-center gap-2 rounded-md px-3 py-2 text-sm font-medium transition-colors",
@@ -56,6 +68,7 @@ export function Sidebar({ isAdmin }: { isAdmin: boolean }) {
       {isAdmin && (
         <Link
           href="/admin"
+          onClick={onNavigate}
           aria-current={pathname.startsWith("/admin") ? "page" : undefined}
           className={cn(
             "flex items-center gap-2 rounded-md px-3 py-2 text-sm font-medium transition-colors",

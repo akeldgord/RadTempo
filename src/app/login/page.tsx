@@ -3,6 +3,11 @@ import { hasAnyUsers } from "@/server/setup-status";
 import { getCurrentUser } from "@/server/auth-helpers";
 import { LoginForm } from "./login-form";
 
+// See src/app/setup/page.tsx: the hasAnyUsers() check has no dynamic API
+// call, so this must be forced dynamic to avoid serving a stale redirect
+// decision from build time.
+export const dynamic = "force-dynamic";
+
 export default async function LoginPage() {
   if (!(await hasAnyUsers())) {
     redirect("/setup");

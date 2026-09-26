@@ -1,10 +1,14 @@
-export default function HistoryPage() {
-  return (
-    <div className="flex flex-col gap-2">
-      <h1 className="text-2xl font-semibold text-foreground">History</h1>
-      <p className="text-sm text-muted">
-        Your completed reads will appear here.
-      </p>
-    </div>
-  );
+import { db } from "@/db";
+import { requireUser } from "@/server/auth-helpers";
+import { listStudyTypes } from "@/features/studies/service";
+import { listTags } from "@/features/tags/service";
+import { HistoryClient } from "./history-client";
+
+export default async function HistoryPage() {
+  const user = await requireUser();
+  const [studyTypes, tags] = await Promise.all([
+    listStudyTypes(db, user.id),
+    listTags(db, user.id),
+  ]);
+  return <HistoryClient studyTypes={studyTypes} tags={tags} />;
 }
