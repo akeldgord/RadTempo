@@ -21,12 +21,8 @@ function studyCardLine(card: DashboardStudyCard): string {
   if (stats.eligibleCount === 0) {
     return `${stats.totalCount} case${stats.totalCount === 1 ? "" : "s"} so far · not yet included in your benchmark`;
   }
-  if (stats.eligibleCount === 1 && card.latestFinishedAt) {
-    const time = card.latestFinishedAt.toLocaleTimeString([], {
-      hour: "2-digit",
-      minute: "2-digit",
-    });
-    return `Baseline started ${time} · 1 case`;
+  if (stats.eligibleCount === 1 && stats.recentPaceMs !== null) {
+    return `Baseline started · ${formatDuration(stats.recentPaceMs)} · 1 case`;
   }
   if (stats.recentPaceMs === null) {
     return `${stats.totalCount} case${stats.totalCount === 1 ? "" : "s"} · ${MATURITY_LABEL[stats.maturity]}`;

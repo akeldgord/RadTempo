@@ -61,6 +61,9 @@ export default async function AdminPage() {
         smtpEnabled={settings.smtpEnabled}
         smtpHost={process.env.SMTP_HOST ?? null}
         emailVerificationRequired={settings.emailVerificationRequired}
+        emailVerificationEnvRequested={
+          process.env.EMAIL_VERIFICATION_REQUIRED === "true"
+        }
       />
 
       <BackupSection />

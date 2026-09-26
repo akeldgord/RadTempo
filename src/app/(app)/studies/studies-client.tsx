@@ -1,13 +1,25 @@
 "use client";
 
-import { useMemo, useState } from "react";
-import { Star, ArrowUp, ArrowDown, Pencil, Trash2, Plus } from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
 import {
+  Star,
+  ArrowUp,
+  ArrowDown,
+  Pencil,
+  Trash2,
+  Archive,
+  ArchiveRestore,
+  Plus,
+  ChevronDown,
+} from "lucide-react";
+import {
+  archiveStudyTypeAction,
   countStudyTypeTimingsAction,
   createStudyTypeAction,
   deleteStudyTypeAction,
   reorderStudyTypesAction,
   setFavoriteAction,
+  unarchiveStudyTypeAction,
   updateStudyTypeAction,
 } from "@/features/studies/actions";
 import type { StudyType } from "@/features/studies/service";
@@ -25,6 +37,18 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+
+/** Suggestions offered on the custom-modality input; any trimmed text
+ * 1-40 chars is accepted (see docs/SPEC.md "Study types"). */
+const MODALITY_SUGGESTIONS = [
+  "CT",
+  "MRI",
+  "US",
+  "XR",
+  "PET/CT",
+  "NM",
+  "Fluoro",
+];
 
 function groupKey(s: StudyType) {
   return `${s.modality} · ${s.bodyRegion}`;
@@ -50,17 +74,58 @@ export function StudiesClient({
     name: string;
     count: number;
   } | null>(null);
+  const [archiveTarget, setArchiveTarget] = useState<{
+    id: string;
+    name: string;
+    count: number;
+  } | null>(null);
+  const [archivedOpen, setArchivedOpen] = useState(false);
+  /** timing counts per study type id, fetched to decide whether a row's
+   * action button reads "Archive" (has timings) or "Delete" (none). */
+  const [counts, setCounts] = useState<Record<string, number>>({});
+
+  useEffect(() => {
+    const missing = studyTypes.map((s) => s.id).filter((id) => !(id in counts));
+    if (missing.length === 0) return;
+    let cancelled = false;
+    void Promise.all(
+      missing.map(async (id) => {
+        const result = await countStudyTypeTimingsAction(id);
+        return [id, result.ok ? result.data : 0] as const;
+      }),
+    ).then((entries) => {
+      if (cancelled) return;
+      setCounts((prev) => {
+        const next = { ...prev };
+        for (const [id, count] of entries) next[id] = count;
+        return next;
+      });
+    });
+    return () => {
+      cancelled = true;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [studyTypes]);
+
+  const activeStudyTypes = useMemo(
+    () => studyTypes.filter((s) => s.archivedAt == null),
+    [studyTypes],
+  );
+  const archivedStudyTypes = useMemo(
+    () => studyTypes.filter((s) => s.archivedAt != null),
+    [studyTypes],
+  );
 
   const groups = useMemo(() => {
     const map = new Map<string, StudyType[]>();
-    for (const s of studyTypes) {
+    for (const s of activeStudyTypes) {
       const key = groupKey(s);
       const list = map.get(key) ?? [];
       list.push(s);
       map.set(key, list);
     }
     return [...map.entries()];
-  }, [studyTypes]);
+  }, [activeStudyTypes]);
 
   function resetForm() {
     setForm({ modality: "CT", bodyRegion: "", name: "", shortName: "" });
@@ -74,6 +139,7 @@ export function StudiesClient({
       return;
     }
     setStudyTypes((prev) => [...prev, result.data]);
+    setCounts((prev) => ({ ...prev, [result.data.id]: 0 }));
     setCreating(false);
     resetForm();
   }
@@ -110,13 +176,16 @@ export function StudiesClient({
     await reorderStudyTypesAction(orderedIds);
   }
 
-  async function openDeleteConfirm(s: StudyType) {
+  /** Studies with recorded cases are archived, not deleted, so history and
+   * analytics are kept; only a study with zero timings can be deleted. */
+  async function openArchiveOrDeleteConfirm(s: StudyType) {
     const result = await countStudyTypeTimingsAction(s.id);
-    setDeleteTarget({
-      id: s.id,
-      name: s.name,
-      count: result.ok ? result.data : 0,
-    });
+    const count = result.ok ? result.data : 0;
+    if (count > 0) {
+      setArchiveTarget({ id: s.id, name: s.name, count });
+    } else {
+      setDeleteTarget({ id: s.id, name: s.name, count });
+    }
   }
 
   async function handleDelete() {
@@ -128,6 +197,30 @@ export function StudiesClient({
       setError(result.error);
     }
     setDeleteTarget(null);
+  }
+
+  async function handleArchive() {
+    if (!archiveTarget) return;
+    const result = await archiveStudyTypeAction(archiveTarget.id);
+    if (result.ok) {
+      setStudyTypes((prev) =>
+        prev.map((s) => (s.id === archiveTarget.id ? result.data : s)),
+      );
+    } else {
+      setError(result.error);
+    }
+    setArchiveTarget(null);
+  }
+
+  async function handleUnarchive(s: StudyType) {
+    const result = await unarchiveStudyTypeAction(s.id);
+    if (result.ok) {
+      setStudyTypes((prev) =>
+        prev.map((st) => (st.id === s.id ? result.data : st)),
+      );
+    } else {
+      setError(result.error);
+    }
   }
 
   return (
@@ -156,17 +249,21 @@ export function StudiesClient({
             <div className="grid gap-3 sm:grid-cols-2">
               <div className="flex flex-col gap-1.5">
                 <Label htmlFor="new-modality">Modality</Label>
-                <select
+                <Input
                   id="new-modality"
+                  list="modality-suggestions"
                   value={form.modality}
+                  maxLength={40}
                   onChange={(e) =>
                     setForm((f) => ({ ...f, modality: e.target.value }))
                   }
-                  className="h-10 rounded-md border border-border bg-card px-3 text-sm text-foreground"
-                >
-                  <option value="CT">CT</option>
-                  <option value="MRI">MRI</option>
-                </select>
+                  placeholder="CT, MRI, US, …"
+                />
+                <datalist id="modality-suggestions">
+                  {MODALITY_SUGGESTIONS.map((m) => (
+                    <option key={m} value={m} />
+                  ))}
+                </datalist>
               </div>
               <div className="flex flex-col gap-1.5">
                 <Label htmlFor="new-region">Body region</Label>
@@ -234,6 +331,7 @@ export function StudiesClient({
                 <li key={s.id}>
                   <StudyRow
                     study={s}
+                    hasTimings={(counts[s.id] ?? 0) > 0}
                     editing={editingId === s.id}
                     onEdit={() => setEditingId(s.id)}
                     onCancelEdit={() => setEditingId(null)}
@@ -241,13 +339,56 @@ export function StudiesClient({
                     onToggleFavorite={() => handleToggleFavorite(s)}
                     onMoveUp={() => handleMove(s, -1)}
                     onMoveDown={() => handleMove(s, 1)}
-                    onDelete={() => openDeleteConfirm(s)}
+                    onArchiveOrDelete={() => openArchiveOrDeleteConfirm(s)}
                   />
                 </li>
               ))}
           </ul>
         </section>
       ))}
+
+      {archivedStudyTypes.length > 0 && (
+        <section>
+          <button
+            type="button"
+            onClick={() => setArchivedOpen((v) => !v)}
+            aria-expanded={archivedOpen}
+            className="mb-2 flex items-center gap-1 text-xs font-semibold uppercase tracking-wide text-muted hover:text-foreground"
+          >
+            <ChevronDown
+              size={14}
+              aria-hidden="true"
+              className={`transition-transform ${archivedOpen ? "" : "-rotate-90"}`}
+            />
+            Archived ({archivedStudyTypes.length})
+          </button>
+          {archivedOpen && (
+            <ul className="flex flex-col gap-1.5">
+              {archivedStudyTypes.map((s) => (
+                <li
+                  key={s.id}
+                  className="flex items-center justify-between gap-2 rounded-md border border-border bg-card px-3 py-2"
+                >
+                  <div>
+                    <p className="text-sm font-medium text-foreground">
+                      {s.name}
+                    </p>
+                    <p className="text-xs text-muted">{s.shortName}</p>
+                  </div>
+                  <Button
+                    type="button"
+                    variant="secondary"
+                    size="sm"
+                    onClick={() => handleUnarchive(s)}
+                  >
+                    <ArchiveRestore size={14} aria-hidden="true" /> Restore
+                  </Button>
+                </li>
+              ))}
+            </ul>
+          )}
+        </section>
+      )}
 
       <AlertDialog
         open={!!deleteTarget}
@@ -257,9 +398,8 @@ export function StudiesClient({
           <AlertDialogHeader>
             <AlertDialogTitle>Delete {deleteTarget?.name}?</AlertDialogTitle>
             <AlertDialogDescription>
-              This will permanently delete this study type and{" "}
-              {deleteTarget?.count ?? 0} recorded timing
-              {deleteTarget?.count === 1 ? "" : "s"}. This cannot be undone.
+              This study type has no recorded timings. Deleting it cannot be
+              undone.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
@@ -270,12 +410,36 @@ export function StudiesClient({
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      <AlertDialog
+        open={!!archiveTarget}
+        onOpenChange={(open) => !open && setArchiveTarget(null)}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Archive {archiveTarget?.name}?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This study type has {archiveTarget?.count ?? 0} recorded timing
+              {archiveTarget?.count === 1 ? "" : "s"}, so it can&apos;t be
+              deleted. Hidden from Start; history and analytics are kept. You
+              can restore it later from the Archived section below.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={handleArchive}>
+              Archive
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
 
 function StudyRow({
   study,
+  hasTimings,
   editing,
   onEdit,
   onCancelEdit,
@@ -283,9 +447,10 @@ function StudyRow({
   onToggleFavorite,
   onMoveUp,
   onMoveDown,
-  onDelete,
+  onArchiveOrDelete,
 }: {
   study: StudyType;
+  hasTimings: boolean;
   editing: boolean;
   onEdit: () => void;
   onCancelEdit: () => void;
@@ -293,7 +458,7 @@ function StudyRow({
   onToggleFavorite: () => void;
   onMoveUp: () => void;
   onMoveDown: () => void;
-  onDelete: () => void;
+  onArchiveOrDelete: () => void;
 }) {
   const [name, setName] = useState(study.name);
   const [shortName, setShortName] = useState(study.shortName);
@@ -388,10 +553,19 @@ function StudyRow({
           type="button"
           variant="ghost"
           size="sm"
-          aria-label="Delete"
-          onClick={onDelete}
+          title={
+            hasTimings
+              ? "Hidden from Start; history and analytics are kept"
+              : undefined
+          }
+          aria-label={hasTimings ? "Archive" : "Delete"}
+          onClick={onArchiveOrDelete}
         >
-          <Trash2 size={14} aria-hidden="true" className="text-danger" />
+          {hasTimings ? (
+            <Archive size={14} aria-hidden="true" />
+          ) : (
+            <Trash2 size={14} aria-hidden="true" className="text-danger" />
+          )}
         </Button>
       </div>
     </div>

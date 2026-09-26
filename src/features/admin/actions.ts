@@ -193,28 +193,6 @@ export async function updateRegistrationModeAction(
   }
 }
 
-export async function updateEmailVerificationAction(
-  _prev: ActionResult | null,
-  formData: FormData,
-): Promise<ActionResult> {
-  try {
-    await requireAdmin();
-    await assertNotMaintenance();
-    if (!isSmtpConfigured()) {
-      return {
-        ok: false,
-        error: "Email verification requires SMTP to be configured.",
-      };
-    }
-    const required = formData.get("emailVerificationRequired") === "true";
-    await updateInstanceSettings({ emailVerificationRequired: required });
-    revalidateAdmin();
-    return { ok: true };
-  } catch (error) {
-    return { ok: false, error: errorMessage(error) };
-  }
-}
-
 export async function sendTestEmailAction(): Promise<ActionResult> {
   try {
     const admin = await requireAdmin();

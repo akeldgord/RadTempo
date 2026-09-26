@@ -11,6 +11,7 @@ import {
   Eye,
 } from "lucide-react";
 import { useTimer } from "./timer-context";
+import { useKeyboardShortcuts } from "@/components/keyboard-shortcuts-provider";
 import { formatDuration } from "@/features/analytics/engine";
 import { Button } from "@/components/ui/button";
 import {
@@ -49,9 +50,14 @@ export function TimerBar() {
     discard,
     panel,
   } = useTimer();
+  const { shortcuts } = useKeyboardShortcuts();
   const [finishError, setFinishError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [discardOpen, setDiscardOpen] = useState(false);
+
+  const keyLabel = (key: string) => (key === " " ? "Space" : key);
+  const pauseResumeHint = keyLabel(shortcuts.pauseResume);
+  const finishHint = keyLabel(shortcuts.finish);
 
   if (!timer && !panel) return null;
 
@@ -85,7 +91,7 @@ export function TimerBar() {
 
   if (minimized) {
     return (
-      <div className="sticky top-0 z-30 flex items-center justify-between border-b border-border bg-card px-4 py-1.5 text-sm sm:px-6">
+      <div className="sticky top-0 z-30 flex items-center justify-between gap-3 border-b border-border bg-card px-4 py-1.5 text-sm sm:px-6">
         <button
           type="button"
           onClick={() => setMinimized(false)}
@@ -101,6 +107,37 @@ export function TimerBar() {
             </span>
           )}
         </button>
+        <div className="flex items-center gap-1">
+          <Button
+            type="button"
+            variant="secondary"
+            size="sm"
+            onClick={handlePauseResume}
+            disabled={busy}
+            aria-label={timer.status === "PAUSED" ? "Resume" : "Pause"}
+            aria-keyshortcuts={shortcuts.pauseResume}
+            title={`${timer.status === "PAUSED" ? "Resume" : "Pause"} (${pauseResumeHint})`}
+            className="px-2"
+          >
+            {timer.status === "PAUSED" ? (
+              <Play size={14} aria-hidden="true" />
+            ) : (
+              <Pause size={14} aria-hidden="true" />
+            )}
+          </Button>
+          <Button
+            type="button"
+            size="sm"
+            onClick={handleFinish}
+            disabled={busy}
+            aria-label="Finish"
+            aria-keyshortcuts={shortcuts.finish}
+            title={`Finish (${finishHint})`}
+            className="px-2"
+          >
+            <Square size={14} aria-hidden="true" />
+          </Button>
+        </div>
       </div>
     );
   }
@@ -140,8 +177,8 @@ export function TimerBar() {
             size="sm"
             onClick={handlePauseResume}
             disabled={busy}
-            aria-keyshortcuts="p"
-            title="Pause/Resume (p)"
+            aria-keyshortcuts={shortcuts.pauseResume}
+            title={`Pause/Resume (${pauseResumeHint})`}
           >
             {timer.status === "PAUSED" ? (
               <Play size={14} aria-hidden="true" />
@@ -155,8 +192,8 @@ export function TimerBar() {
             size="sm"
             onClick={handleFinish}
             disabled={busy}
-            aria-keyshortcuts="f"
-            title="Finish (f)"
+            aria-keyshortcuts={shortcuts.finish}
+            title={`Finish (${finishHint})`}
           >
             <Square size={14} aria-hidden="true" />
             Finish

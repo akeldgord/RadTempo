@@ -5,9 +5,7 @@ import { useRouter } from "next/navigation";
 import { Star, Search } from "lucide-react";
 import { useTimer } from "@/components/timer/timer-context";
 import type { HomeSections, StudyType } from "@/features/studies/service";
-import { formatDuration } from "@/features/analytics/engine";
 import { Input } from "@/components/ui/input";
-import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 
 function StudyButton({
@@ -43,7 +41,7 @@ function StudyButton({
 
 export function StartPageClient({ sections }: { sections: HomeSections }) {
   const router = useRouter();
-  const { timer, start, elapsedMs } = useTimer();
+  const { timer, start } = useTimer();
   const [query, setQuery] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [pendingId, setPendingId] = useState<string | null>(null);
@@ -88,19 +86,7 @@ export function StartPageClient({ sections }: { sections: HomeSections }) {
       </div>
 
       {timer && (
-        <Card className="border-primary/40 bg-accent">
-          <CardContent className="flex items-center justify-between gap-4 pt-6">
-            <div>
-              <p className="text-sm text-muted">Timer running</p>
-              <p className="text-lg font-semibold text-foreground">
-                {timer.shortName}
-              </p>
-            </div>
-            <p className="font-mono text-2xl tabular-nums text-foreground">
-              {formatDuration(elapsedMs)}
-            </p>
-          </CardContent>
-        </Card>
+        <p className="text-sm text-muted">{timer.shortName} — timer running</p>
       )}
 
       {error && (

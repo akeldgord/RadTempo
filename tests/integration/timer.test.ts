@@ -206,10 +206,10 @@ describe("finishTimer", () => {
     expect(entry.tagIds).toEqual([]);
   });
 
-  it("finish while paused excludes paused time up to pause_started_at, even if Finish is clicked much later", async () => {
+  it("finish while paused sets finished_at to the server clock at Finish, not to pause_started_at", async () => {
     const userId = await createTestUser();
     const study = await makeStudyType(userId);
-    const start = new Date("2026-01-01T00:00:00Z");
+    const start = new Date("2026-01-01T12:00:00Z");
     const { timer } = await timerService.startTimer(
       db,
       userId,
@@ -217,22 +217,38 @@ describe("finishTimer", () => {
       start,
     );
 
-    // Active for 20s, then paused.
-    const pauseAt = new Date(start.getTime() + 20_000);
+    // Active for 5 minutes, then paused.
+    const pauseAt = new Date("2026-01-01T12:05:00Z");
     await timerService.pauseTimer(db, userId, timer.id, pauseAt);
 
-    // Finish is clicked 5 minutes later, while still paused: none of that
-    // 5 minutes should count.
-    const finishClickedAt = new Date(pauseAt.getTime() + 300_000);
+    // Finish is clicked 10 minutes later, while still paused.
+    const finishAt = new Date("2026-01-01T12:15:00Z");
     const { entry } = await timerService.finishTimer(
       db,
       userId,
       timer.id,
-      finishClickedAt,
+      finishAt,
     );
 
-    expect(entry.finishedAt.getTime()).toBe(pauseAt.getTime());
-    expect(entry.activeDurationMs).toBe(20_000);
+    // finished_at is the server's clock at Finish — never pause_started_at.
+    expect(entry.finishedAt.getTime()).toBe(finishAt.getTime());
+    // active = finished_at - started_at - paused (5 min active, 10 min paused).
+    expect(entry.activeDurationMs).toBe(5 * 60_000);
+
+    const rows = await db
+      .select()
+      .from(timingEntries)
+      .where(eq(timingEntries.id, entry.id));
+    expect(rows[0].pausedDurationMs).toBe(10 * 60_000);
+    expect(rows[0].pauseStartedAt).toBeNull();
+
+    const pauseEvents = await db
+      .select()
+      .from(timingPauseEvents)
+      .where(eq(timingPauseEvents.timingEntryId, entry.id));
+    expect(pauseEvents).toHaveLength(1);
+    expect(pauseEvents[0].pausedAt.getTime()).toBe(pauseAt.getTime());
+    expect(pauseEvents[0].resumedAt?.getTime()).toBe(finishAt.getTime());
   });
 
   it("is idempotent: finishing an already-COMPLETED entry returns the same result", async () => {
@@ -338,8 +354,8 @@ describe("classification window and immutability", () => {
       classifyAt,
     );
 
-    expect(updated.complexity).toBe("DIFFICULT");
-    expect(updated.tagIds).toEqual([tag.id]);
+    expect(updated.entry.complexity).toBe("DIFFICULT");
+    expect(updated.entry.tagIds).toEqual([tag.id]);
   });
 
   it("rejects classification after the 10-minute window and finalizes the entry", async () => {
@@ -504,5 +520,113 @@ describe("listHistory", () => {
     expect(included[0].id).toBe(second.timer.id);
     expect(excluded).toHaveLength(1);
     expect(excluded[0].id).toBe(finished1.entry.id);
+  });
+});
+
+describe("post-case feedback recompute", () => {
+  async function completeCase(
+    userId: string,
+    studyId: string,
+    startedAt: Date,
+    durationMs: number,
+    complexity: "EASY" | "TYPICAL" | "DIFFICULT",
+  ) {
+    const { timer } = await timerService.startTimer(
+      db,
+      userId,
+      studyId,
+      startedAt,
+    );
+    const finishedAt = new Date(startedAt.getTime() + durationMs);
+    const { entry } = await timerService.finishTimer(
+      db,
+      userId,
+      timer.id,
+      finishedAt,
+    );
+    if (complexity !== "TYPICAL") {
+      await timerService.classifyEntry(
+        db,
+        userId,
+        entry.id,
+        { complexity },
+        new Date(finishedAt.getTime() + 1),
+      );
+    }
+    return entry;
+  }
+
+  it("classifying to DIFFICULT changes the recomputed feedback vs TYPICAL, once complexity factors are established", async () => {
+    const userId = await createTestUser();
+    const study = await makeStudyType(userId);
+    let t = new Date("2026-01-01T00:00:00Z");
+
+    // 5 TYPICAL (100s) + 5 DIFFICULT (200s) cases: median = 150s, so
+    // factor(TYPICAL) = 1.0 and factor(DIFFICULT) = 2.0 — both
+    // non-provisional (>= MIN_FACTOR_N ratios each).
+    for (let i = 0; i < 5; i++) {
+      await completeCase(userId, study.id, t, 100_000, "TYPICAL");
+      t = new Date(t.getTime() + 60_000);
+    }
+    for (let i = 0; i < 5; i++) {
+      await completeCase(userId, study.id, t, 200_000, "DIFFICULT");
+      t = new Date(t.getTime() + 60_000);
+    }
+
+    const { timer } = await timerService.startTimer(db, userId, study.id, t);
+    const finishedAt = new Date(t.getTime() + 100_000);
+    await timerService.finishTimer(db, userId, timer.id, finishedAt);
+
+    const asTypical = await timerService.classifyEntry(
+      db,
+      userId,
+      timer.id,
+      { complexity: "TYPICAL" },
+      new Date(finishedAt.getTime() + 1),
+    );
+    const asDifficult = await timerService.classifyEntry(
+      db,
+      userId,
+      timer.id,
+      { complexity: "DIFFICULT" },
+      new Date(finishedAt.getTime() + 2),
+    );
+
+    expect(asTypical.feedback.kind).toBe("COMPARISON");
+    expect(asDifficult.feedback.kind).toBe("COMPARISON");
+    expect(asDifficult.feedback.percentVsRecent).not.toBe(
+      asTypical.feedback.percentVsRecent,
+    );
+    expect(asDifficult.feedbackText).not.toBe(asTypical.feedbackText);
+  });
+
+  it("tagging with an exclude-from-benchmark tag (Interrupted) recomputes feedback as EXCLUDED, with no comparison", async () => {
+    const userId = await createTestUser();
+    const study = await makeStudyType(userId);
+    const interrupted = await tagsService.createTag(db, userId, {
+      name: "Interrupted",
+      excludeFromBenchmark: true,
+    });
+
+    const { timer } = await timerService.startTimer(db, userId, study.id);
+    const { feedback: initialFeedback } = await timerService.finishTimer(
+      db,
+      userId,
+      timer.id,
+    );
+    expect(initialFeedback.kind).toBe("BASELINE_STARTED");
+
+    const result = await timerService.classifyEntry(db, userId, timer.id, {
+      tagIds: [interrupted.id],
+    });
+
+    expect(result.feedback.kind).toBe("EXCLUDED");
+    expect(result.feedbackText).toBe("Not included in your personal benchmark");
+
+    // Removing the tag again recomputes non-excluded feedback.
+    const untagged = await timerService.classifyEntry(db, userId, timer.id, {
+      tagIds: [],
+    });
+    expect(untagged.feedback.kind).not.toBe("EXCLUDED");
   });
 });

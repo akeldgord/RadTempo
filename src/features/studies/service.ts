@@ -14,7 +14,7 @@ import {
   timingEntryTags,
   userStudyTypes,
 } from "@/db/schema";
-import { NotFoundError } from "@/server/errors";
+import { NotFoundError, ValidationError } from "@/server/errors";
 import { MODALITY_ORDER, REGION_ORDER, type Modality } from "./templates";
 
 export interface StudyType {
@@ -26,6 +26,7 @@ export interface StudyType {
   sortOrder: number;
   favorite: boolean;
   createdFromTemplate: string | null;
+  archivedAt: Date | null;
 }
 
 export interface StudyTypeRegionGroup {
@@ -58,6 +59,7 @@ function toStudyType(row: typeof userStudyTypes.$inferSelect): StudyType {
     sortOrder: row.sortOrder,
     favorite: row.favorite,
     createdFromTemplate: row.createdFromTemplate,
+    archivedAt: row.archivedAt,
   };
 }
 
@@ -151,7 +153,11 @@ export async function getHomeSections(
   db: DbClient,
   userId: string,
 ): Promise<HomeSections> {
-  const all = await listStudyTypes(db, userId);
+  const allRows = await listStudyTypes(db, userId);
+  // Archived study types are hidden everywhere on the Start screen
+  // (favorites/frequent/recent/all/browse/search) — history and analytics
+  // still see them via loadUserCases/listHistory, which don't call this.
+  const all = allRows.filter((s) => s.archivedAt == null);
   const byId = new Map(all.map((s) => [s.id, s]));
 
   const favorites = all.filter((s) => s.favorite);
@@ -271,7 +277,10 @@ export async function setFavorite(
   studyTypeId: string,
   favorite: boolean,
 ): Promise<StudyType> {
-  await getOwnedStudyType(db, userId, studyTypeId);
+  const existing = await getOwnedStudyType(db, userId, studyTypeId);
+  if (favorite && existing.archivedAt != null) {
+    throw new ValidationError("Archived study types can't be favorited.");
+  }
   const rows = await db
     .update(userStudyTypes)
     .set({ favorite, updatedAt: new Date() })
@@ -285,7 +294,7 @@ export async function setFavorite(
   return toStudyType(rows[0]);
 }
 
-/** Number of timing entries that would be cascade-deleted with this study type. */
+/** Number of timing entries recorded against this study type. */
 export async function countTimings(
   db: DbClient,
   userId: string,
@@ -304,14 +313,23 @@ export async function countTimings(
   return rows[0]?.value ?? 0;
 }
 
-/** Deletes a study type (and cascades its timings via FK). Returns the
- * number of timing entries that were cascade-deleted. */
+/**
+ * Deletes a study type outright. Only allowed when it has zero timing
+ * entries — the `study_type_id` FK is `ON DELETE RESTRICT` precisely so
+ * history can never be destroyed this way. A study type with timings must
+ * be archived instead (see `archiveStudyType`).
+ */
 export async function deleteStudyType(
   db: DbClient,
   userId: string,
   studyTypeId: string,
 ): Promise<{ deletedTimingsCount: number }> {
   const deletedTimingsCount = await countTimings(db, userId, studyTypeId);
+  if (deletedTimingsCount > 0) {
+    throw new ValidationError(
+      "This study type has recorded cases and can't be deleted. Archive it instead to hide it from Start while keeping your history.",
+    );
+  }
 
   const rows = await db
     .delete(userStudyTypes)
@@ -325,6 +343,51 @@ export async function deleteStudyType(
 
   if (rows.length === 0) throw new NotFoundError("Study type not found");
   return { deletedTimingsCount };
+}
+
+/**
+ * Archives a study type: hidden from the Start screen (favorites/frequent/
+ * recent/all/browse/search) and can't be started or favorited, but its
+ * history, analytics, export and import matching are all preserved. Also
+ * clears `favorite`, since an archived study can't be a favorite.
+ */
+export async function archiveStudyType(
+  db: DbClient,
+  userId: string,
+  studyTypeId: string,
+): Promise<StudyType> {
+  await getOwnedStudyType(db, userId, studyTypeId);
+  const rows = await db
+    .update(userStudyTypes)
+    .set({ archivedAt: new Date(), favorite: false, updatedAt: new Date() })
+    .where(
+      and(
+        eq(userStudyTypes.id, studyTypeId),
+        eq(userStudyTypes.userId, userId),
+      ),
+    )
+    .returning();
+  return toStudyType(rows[0]);
+}
+
+/** Restores an archived study type to active (visible on Start again). */
+export async function unarchiveStudyType(
+  db: DbClient,
+  userId: string,
+  studyTypeId: string,
+): Promise<StudyType> {
+  await getOwnedStudyType(db, userId, studyTypeId);
+  const rows = await db
+    .update(userStudyTypes)
+    .set({ archivedAt: null, updatedAt: new Date() })
+    .where(
+      and(
+        eq(userStudyTypes.id, studyTypeId),
+        eq(userStudyTypes.userId, userId),
+      ),
+    )
+    .returning();
+  return toStudyType(rows[0]);
 }
 
 /** Reassigns sort_order to match the given order. Ids not owned by the user

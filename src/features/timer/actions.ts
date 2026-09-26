@@ -10,6 +10,7 @@ import { syncAchievements } from "@/features/achievements/service";
 import type { NewlyEarnedAchievement } from "@/features/achievements/service";
 import * as timerService from "./service";
 import type {
+  ClassifyResult,
   CompletedEntrySummary,
   FinishResult,
   HistoryRow,
@@ -141,7 +142,7 @@ export async function discardActiveTimerAction(
 export async function classifyEntryAction(
   entryId: string,
   input: unknown,
-): Promise<ActionResult<CompletedEntrySummary>> {
+): Promise<ActionResult<ClassifyResult>> {
   try {
     const user = await requireUser();
     await assertNotMaintenance();

@@ -82,7 +82,7 @@ export interface TrendPoint {
 export type TrendBucket = "week" | "month";
 
 export type PostCaseFeedbackKind =
-  "BASELINE_STARTED" | "BASELINE_BUILDING" | "COMPARISON";
+  "BASELINE_STARTED" | "BASELINE_BUILDING" | "COMPARISON" | "EXCLUDED";
 
 export interface PostCaseFeedback {
   kind: PostCaseFeedbackKind;

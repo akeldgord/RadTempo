@@ -14,7 +14,7 @@ The simplest path. Set `DOMAIN` in `.env` to your public hostname, then run:
 docker compose -f docker-compose.yml -f docker-compose.caddy.yml up -d
 ```
 
-Caddy automatically requests and renews a TLS certificate for `DOMAIN` and proxies traffic to the `app` container. See `Caddyfile.example` in the repository root for the template it uses.
+Caddy automatically requests and renews a TLS certificate for `DOMAIN` and proxies traffic to the `app` container. The overlay mounts `docker/Caddyfile` (a copy of the `Caddyfile.example` template in the repository root) and also removes the `app` service's direct host port publication, since Caddy is now the only thing exposed on the host. This requires Docker Compose >= 2.24 (for the `!reset` merge operator).
 
 ## Option 2: Your own existing Caddy instance
 

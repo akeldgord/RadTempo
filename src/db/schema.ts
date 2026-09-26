@@ -203,6 +203,11 @@ export const userStudyTypes = pgTable("user_study_types", {
   sortOrder: integer("sort_order").notNull().default(0),
   favorite: boolean("favorite").notNull().default(false),
   createdFromTemplate: text("created_from_template"),
+  /** Set when this study type is archived rather than deleted (see
+   * docs/SPEC.md "Study types"). Archived study types are hidden from the
+   * Start screen and can't be started/favorited, but their history and
+   * analytics are preserved. Null means active. */
+  archivedAt: timestamp("archived_at", { withTimezone: true }),
   createdAt: timestamp("created_at", { withTimezone: true })
     .notNull()
     .defaultNow(),
@@ -222,9 +227,16 @@ export const timingEntries = pgTable(
     userId: uuid("user_id")
       .notNull()
       .references(() => user.id, { onDelete: "cascade" }),
+    // NO ACTION (not CASCADE): timing history must never be destroyed by a
+    // study type delete. The app only deletes study types with zero timings
+    // (see `deleteStudyType`); studies with history are archived instead.
+    // NO ACTION is checked at end of statement (unlike RESTRICT, which is
+    // checked immediately), so account deletion, which cascades both
+    // `timing_entries` and `user_study_types` via their `user_id` FKs in one
+    // statement, succeeds regardless of cascade ordering.
     studyTypeId: uuid("study_type_id")
       .notNull()
-      .references(() => userStudyTypes.id, { onDelete: "cascade" }),
+      .references(() => userStudyTypes.id, { onDelete: "no action" }),
     status: timingStatusEnum("status").notNull().default("ACTIVE"),
     startedAt: timestamp("started_at", { withTimezone: true }).notNull(),
     pauseStartedAt: timestamp("pause_started_at", { withTimezone: true }),

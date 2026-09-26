@@ -146,7 +146,11 @@ export async function createUser(input: {
         email: input.email.toLowerCase(),
         name: input.name,
         role: input.role ?? "USER",
-        emailVerified: false,
+        // Admin-created accounts are vouched for by the admin who created
+        // them, so they can sign in immediately even when email
+        // verification is otherwise required. See docs/SPEC.md "Auth &
+        // accounts".
+        emailVerified: true,
       })
       .returning({ id: userTable.id });
 

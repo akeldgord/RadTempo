@@ -47,13 +47,13 @@ Open `http://localhost:3000`. On first run, you'll be sent to `/setup`, where yo
 
 ### Exposing RadTempo on a public domain
 
-RadTempo ships with an optional bundled [Caddy](https://caddyserver.com/) reverse proxy that handles TLS automatically. Set `DOMAIN` in `.env` to your public hostname, then run:
+RadTempo ships with an optional bundled [Caddy](https://caddyserver.com/) reverse proxy that handles TLS automatically. Set `DOMAIN` in `.env` to your public hostname, then run (requires Docker Compose >= 2.24):
 
 ```bash
 docker compose -f docker-compose.yml -f docker-compose.caddy.yml up -d
 ```
 
-If you'd rather use an existing reverse proxy (Caddy, Nginx, Traefik, etc.), see [`docs/reverse-proxy.md`](docs/reverse-proxy.md).
+This also stops the `app` container from publishing its own host port directly — Caddy becomes the only thing exposed on ports 80/443. If you'd rather use an existing reverse proxy (Caddy, Nginx, Traefik, etc.), see [`docs/reverse-proxy.md`](docs/reverse-proxy.md).
 
 ## Documentation
 

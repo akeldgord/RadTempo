@@ -162,14 +162,6 @@ describe("non-admin rejection", () => {
             formData({ registrationMode: "open" }),
           ),
       ],
-      [
-        "updateEmailVerificationAction",
-        () =>
-          actions.updateEmailVerificationAction(
-            null,
-            formData({ emailVerificationRequired: "true" }),
-          ),
-      ],
       ["sendTestEmailAction", () => actions.sendTestEmailAction()],
       [
         "updateTelemetryAction",

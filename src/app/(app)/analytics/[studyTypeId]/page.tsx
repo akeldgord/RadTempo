@@ -162,6 +162,13 @@ export default async function StudyAnalyticsPage({
         </Card>
       </section>
 
+      {data.personalPercentile !== null && (
+        <p className="text-sm text-muted">
+          Faster than {formatPercent(data.personalPercentile)}% of your prior
+          comparable reads.
+        </p>
+      )}
+
       <section aria-label="Raw and complexity-adjusted trend">
         <h2 className="mb-3 text-sm font-semibold text-foreground">
           Raw vs. complexity-adjusted trend
@@ -293,8 +300,11 @@ export default async function StudyAnalyticsPage({
                   <th scope="col" className="py-2 pr-4 font-medium">
                     Tags
                   </th>
-                  <th scope="col" className="py-2 font-medium">
+                  <th scope="col" className="py-2 pr-4 font-medium">
                     Included?
+                  </th>
+                  <th scope="col" className="py-2 font-medium">
+                    Personal percentile
                   </th>
                 </tr>
               </thead>
@@ -319,10 +329,15 @@ export default async function StudyAnalyticsPage({
                     <td className="py-2 pr-4 text-foreground">
                       {c.tagNames.length > 0 ? c.tagNames.join(", ") : "—"}
                     </td>
-                    <td className="py-2 text-foreground">
+                    <td className="py-2 pr-4 text-foreground">
                       {c.excluded
                         ? `Excluded${c.excludingTagNames.length > 0 ? ` (${c.excludingTagNames.join(", ")})` : ""}`
                         : "Included"}
+                    </td>
+                    <td className="py-2 text-foreground">
+                      {c.personalPercentile !== null
+                        ? `Faster than ${formatPercent(c.personalPercentile)}% of your prior comparable reads`
+                        : "—"}
                     </td>
                   </tr>
                 ))}

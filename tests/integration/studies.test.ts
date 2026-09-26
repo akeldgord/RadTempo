@@ -7,7 +7,7 @@ import * as tagsService from "@/features/tags/service";
 import * as timerService from "@/features/timer/service";
 import { userPreferences } from "@/db/schema";
 import { eq } from "drizzle-orm";
-import { NotFoundError } from "@/server/errors";
+import { NotFoundError, ValidationError } from "@/server/errors";
 import { createTestUser } from "./helpers";
 
 async function resetDatabase() {
@@ -181,5 +181,182 @@ describe("home sections", () => {
       0,
     );
     expect(totalInHierarchy).toBe(studyTypes.length);
+  });
+});
+
+describe("archive instead of cascade delete", () => {
+  it("refuses to delete a study type with recorded timings, but archiving preserves its history", async () => {
+    const userId = await createTestUser();
+    const study = await studiesService.createStudyType(db, userId, {
+      modality: "CT",
+      bodyRegion: "Head",
+      name: "CT Head without contrast",
+      shortName: "CT Head -C",
+    });
+    await studiesService.setFavorite(db, userId, study.id, true);
+
+    const { timer } = await timerService.startTimer(db, userId, study.id);
+    const { entry } = await timerService.finishTimer(db, userId, timer.id);
+
+    await expect(
+      studiesService.deleteStudyType(db, userId, study.id),
+    ).rejects.toBeInstanceOf(ValidationError);
+
+    const archived = await studiesService.archiveStudyType(
+      db,
+      userId,
+      study.id,
+    );
+    expect(archived.archivedAt).not.toBeNull();
+    expect(archived.favorite).toBe(false);
+
+    // History rows and analytics inputs are untouched by archiving.
+    const history = await timerService.listHistory(db, userId, {});
+    expect(history.map((h) => h.id)).toContain(entry.id);
+
+    const cases = await (
+      await import("@/features/analytics/repository")
+    ).loadUserCases(db, userId);
+    expect(cases.some((c) => c.id === entry.id)).toBe(true);
+  });
+
+  it("archived study types are hidden from getHomeSections and can't be started or favorited", async () => {
+    const userId = await createTestUser();
+    const study = await studiesService.createStudyType(db, userId, {
+      modality: "CT",
+      bodyRegion: "Head",
+      name: "CT Head without contrast",
+      shortName: "CT Head -C",
+    });
+    const { timer } = await timerService.startTimer(db, userId, study.id);
+    await timerService.finishTimer(db, userId, timer.id);
+    await studiesService.archiveStudyType(db, userId, study.id);
+
+    const sections = await studiesService.getHomeSections(db, userId);
+    expect(sections.favorites.some((s) => s.id === study.id)).toBe(false);
+    expect(sections.frequent.some((s) => s.id === study.id)).toBe(false);
+    expect(sections.recent.some((s) => s.id === study.id)).toBe(false);
+    const allIds = sections.all.flatMap((m) =>
+      m.regions.flatMap((r) => r.studyTypes.map((s) => s.id)),
+    );
+    expect(allIds).not.toContain(study.id);
+
+    await expect(
+      timerService.startTimer(db, userId, study.id),
+    ).rejects.toBeInstanceOf(ValidationError);
+    await expect(
+      studiesService.setFavorite(db, userId, study.id, true),
+    ).rejects.toBeInstanceOf(ValidationError);
+  });
+
+  it("unarchiveStudyType restores it to Start", async () => {
+    const userId = await createTestUser();
+    const study = await studiesService.createStudyType(db, userId, {
+      modality: "CT",
+      bodyRegion: "Head",
+      name: "CT Head without contrast",
+      shortName: "CT Head -C",
+    });
+    await studiesService.archiveStudyType(db, userId, study.id);
+    const restored = await studiesService.unarchiveStudyType(
+      db,
+      userId,
+      study.id,
+    );
+    expect(restored.archivedAt).toBeNull();
+
+    const sections = await studiesService.getHomeSections(db, userId);
+    const allIds = sections.all.flatMap((m) =>
+      m.regions.flatMap((r) => r.studyTypes.map((s) => s.id)),
+    );
+    expect(allIds).toContain(study.id);
+  });
+
+  it("deletes a study type with zero timings outright", async () => {
+    const userId = await createTestUser();
+    const study = await studiesService.createStudyType(db, userId, {
+      modality: "CT",
+      bodyRegion: "Head",
+      name: "CT Head without contrast",
+      shortName: "CT Head -C",
+    });
+    const { deletedTimingsCount } = await studiesService.deleteStudyType(
+      db,
+      userId,
+      study.id,
+    );
+    expect(deletedTimingsCount).toBe(0);
+    await expect(
+      studiesService.updateStudyType(db, userId, study.id, { name: "x" }),
+    ).rejects.toBeInstanceOf(NotFoundError);
+  });
+});
+
+describe("custom modality", () => {
+  it("accepts an arbitrary trimmed modality, and the study is startable/favoritable/analyzable", async () => {
+    const userId = await createTestUser();
+    const study = await studiesService.createStudyType(db, userId, {
+      modality: "US",
+      bodyRegion: "Abdomen",
+      name: "Ultrasound Abdomen",
+      shortName: "US Abd",
+    });
+    expect(study.modality).toBe("US");
+
+    const favorited = await studiesService.setFavorite(
+      db,
+      userId,
+      study.id,
+      true,
+    );
+    expect(favorited.favorite).toBe(true);
+
+    const { timer } = await timerService.startTimer(db, userId, study.id);
+    await timerService.finishTimer(db, userId, timer.id);
+
+    const sections = await studiesService.getHomeSections(db, userId);
+    expect(sections.favorites.some((s) => s.id === study.id)).toBe(true);
+    const usGroup = sections.all.find((m) => m.modality === "US");
+    expect(usGroup).toBeDefined();
+
+    const { loadUserCases } = await import("@/features/analytics/repository");
+    const cases = await loadUserCases(db, userId);
+    expect(cases.some((c) => c.studyTypeId === study.id)).toBe(true);
+  });
+
+  it("groups CT and MRI first (in that order), then other modalities alphabetically", async () => {
+    const userId = await createTestUser();
+    await studiesService.createStudyType(db, userId, {
+      modality: "US",
+      bodyRegion: "Abdomen",
+      name: "US Abdomen",
+      shortName: "US Abd",
+    });
+    await studiesService.createStudyType(db, userId, {
+      modality: "MRI",
+      bodyRegion: "Pelvis",
+      name: "MRI Pelvis",
+      shortName: "MRI Pelvis",
+    });
+    await studiesService.createStudyType(db, userId, {
+      modality: "CT",
+      bodyRegion: "Chest",
+      name: "CT Chest",
+      shortName: "CT Chest",
+    });
+    await studiesService.createStudyType(db, userId, {
+      modality: "XR",
+      bodyRegion: "Chest",
+      name: "XR Chest",
+      shortName: "XR Chest",
+    });
+
+    const sections = await studiesService.getHomeSections(db, userId);
+    expect(sections.all.map((m) => m.modality)).toEqual([
+      "CT",
+      "MRI",
+      "US",
+      "XR",
+    ]);
   });
 });

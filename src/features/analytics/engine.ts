@@ -388,6 +388,8 @@ export function formatFeedbackText(feedback: PostCaseFeedback): string {
       }
       return `${magnitude}% above your recent comparable pace`;
     }
+    case "EXCLUDED":
+      return "Not included in your personal benchmark";
     default:
       return "";
   }

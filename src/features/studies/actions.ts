@@ -11,8 +11,13 @@ import type { HomeSections, StudyType } from "./service";
 
 const uuidSchema = z.string().uuid();
 
+// Custom study types accept any trimmed modality text (1-40 chars), not
+// just CT/MRI — e.g. "US", "XR", "PET/CT". Templates (seeded at onboarding)
+// stay CT/MRI only; this only affects user-created/edited study types.
+const modalitySchema = z.string().trim().min(1).max(40);
+
 const createSchema = z.object({
-  modality: z.enum(["CT", "MRI"]),
+  modality: modalitySchema,
   bodyRegion: z.string().trim().min(1).max(100),
   name: z.string().trim().min(1).max(200),
   shortName: z.string().trim().min(1).max(60),
@@ -21,7 +26,7 @@ const createSchema = z.object({
 const updateSchema = z.object({
   name: z.string().trim().min(1).max(200).optional(),
   shortName: z.string().trim().min(1).max(60).optional(),
-  modality: z.enum(["CT", "MRI"]).optional(),
+  modality: modalitySchema.optional(),
   bodyRegion: z.string().trim().min(1).max(100).optional(),
 });
 
@@ -121,6 +126,36 @@ export async function deleteStudyTypeAction(
     return { ok: true, data };
   } catch (error) {
     return toActionError(error, "Could not delete study type.");
+  }
+}
+
+export async function archiveStudyTypeAction(
+  studyTypeId: string,
+): Promise<ActionResult<StudyType>> {
+  try {
+    const user = await requireUser();
+    await assertNotMaintenance();
+    const id = uuidSchema.parse(studyTypeId);
+    const data = await studiesService.archiveStudyType(db, user.id, id);
+    revalidateStudyPaths();
+    return { ok: true, data };
+  } catch (error) {
+    return toActionError(error, "Could not archive study type.");
+  }
+}
+
+export async function unarchiveStudyTypeAction(
+  studyTypeId: string,
+): Promise<ActionResult<StudyType>> {
+  try {
+    const user = await requireUser();
+    await assertNotMaintenance();
+    const id = uuidSchema.parse(studyTypeId);
+    const data = await studiesService.unarchiveStudyType(db, user.id, id);
+    revalidateStudyPaths();
+    return { ok: true, data };
+  } catch (error) {
+    return toActionError(error, "Could not restore study type.");
   }
 }
 

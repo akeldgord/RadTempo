@@ -21,9 +21,24 @@ function defaultRegistrationMode(): RegistrationMode {
 }
 
 /**
+ * Whether email verification is actually enforced: EMAIL_VERIFICATION_REQUIRED
+ * is the single source of truth (no DB setting is consulted — see
+ * `src/lib/auth.ts` and docs/SPEC.md "Auth & accounts"), and it only takes
+ * effect when SMTP is configured, since verification mail cannot be sent
+ * otherwise.
+ */
+export function isEmailVerificationRequired(): boolean {
+  return (
+    process.env.EMAIL_VERIFICATION_REQUIRED === "true" && isSmtpConfigured()
+  );
+}
+
+/**
  * Returns the single instance_settings row, creating it lazily on first
  * access. `smtpEnabled` is derived from environment configuration, never
- * stored, since SMTP secrets live only in env.
+ * stored, since SMTP secrets live only in env. `emailVerificationRequired`
+ * is likewise derived from environment configuration (never the DB row,
+ * which stays dormant) — see `isEmailVerificationRequired`.
  */
 export async function getInstanceSettings(): Promise<InstanceSettings> {
   const existing = await db.select().from(instanceSettings).limit(1);
@@ -34,7 +49,7 @@ export async function getInstanceSettings(): Promise<InstanceSettings> {
       id: row.id,
       registrationMode: row.registrationMode,
       smtpEnabled: isSmtpConfigured(),
-      emailVerificationRequired: row.emailVerificationRequired,
+      emailVerificationRequired: isEmailVerificationRequired(),
       telemetryEnabled: row.telemetryEnabled,
       instanceName: row.instanceName,
       maintenanceMode: row.maintenanceMode,
@@ -45,8 +60,6 @@ export async function getInstanceSettings(): Promise<InstanceSettings> {
     .insert(instanceSettings)
     .values({
       registrationMode: defaultRegistrationMode(),
-      emailVerificationRequired:
-        process.env.EMAIL_VERIFICATION_REQUIRED === "true",
       telemetryEnabled: process.env.TELEMETRY_ENABLED === "true",
     })
     .returning();
@@ -55,7 +68,7 @@ export async function getInstanceSettings(): Promise<InstanceSettings> {
     id: created.id,
     registrationMode: created.registrationMode,
     smtpEnabled: isSmtpConfigured(),
-    emailVerificationRequired: created.emailVerificationRequired,
+    emailVerificationRequired: isEmailVerificationRequired(),
     telemetryEnabled: created.telemetryEnabled,
     instanceName: created.instanceName,
     maintenanceMode: created.maintenanceMode,
@@ -88,7 +101,6 @@ export async function updateInstanceSettings(
     Pick<
       InstanceSettings,
       | "registrationMode"
-      | "emailVerificationRequired"
       | "telemetryEnabled"
       | "instanceName"
       | "maintenanceMode"
@@ -108,7 +120,7 @@ export async function updateInstanceSettings(
         id: updated.id,
         registrationMode: updated.registrationMode,
         smtpEnabled: isSmtpConfigured(),
-        emailVerificationRequired: updated.emailVerificationRequired,
+        emailVerificationRequired: isEmailVerificationRequired(),
         telemetryEnabled: updated.telemetryEnabled,
         instanceName: updated.instanceName,
         maintenanceMode: updated.maintenanceMode,

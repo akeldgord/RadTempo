@@ -46,9 +46,9 @@ Docs must disclose: instance administrators control infrastructure and may techn
 
 ## Study types
 
-Per-user rows copied from application-level templates at onboarding; then fully user-owned (rename, delete, reorder, favorite, create). Hierarchy: modality → body region → study type. Combined exams are first-class and fully independent (never derived from components).
+Per-user rows copied from application-level templates at onboarding; then fully user-owned (rename, archive/delete, reorder, favorite, create). Hierarchy: modality → body region → study type. Combined exams are first-class and fully independent (never derived from components).
 
-Seed templates (modality / region / name / shortName):
+Seed templates are CT/MRI only (modality / region / name / shortName):
 
 - CT / Chest: CT Chest without contrast (CT Chest −C); CT Chest with contrast (CT Chest +C); CTA Chest
 - CT / Abdomen/Pelvis: CT Abdomen/Pelvis without contrast (CT A/P −C); with contrast (CT A/P +C); with & without contrast (CT A/P ±C); CTA Abdomen/Pelvis
@@ -57,6 +57,10 @@ Seed templates (modality / region / name / shortName):
 - MRI / Pelvis: MRI Pelvis without contrast; MRI Pelvis with & without contrast; MRI Prostate
 - MRI / Combined: MRI Abdomen + Pelvis without contrast; MRI Abdomen + Pelvis with & without contrast
   Keep the seed list in one easily edited file.
+
+Custom (user-created/edited) study types accept any trimmed modality text (1-40 chars), not just CT/MRI — e.g. "US", "XR", "PET/CT". The Start/Browse hierarchy groups CT and MRI first (in that order), then any other modality alphabetically; body regions within a modality follow that modality's listed order, then alphabetically for the rest.
+
+Archiving, not deleting, is how a study type with recorded history is retired: an archived study type (`archived_at` set) is hidden from every Start-screen section (favorites/frequent/recent/all/browse/search) and can't be started or favorited, but its history, analytics, export and import matching are all preserved — the `timing_entries.study_type_id` FK is `ON DELETE NO ACTION`, so history can never be destroyed this way. A study type may only be permanently deleted while it has zero recorded timings; otherwise the Studies page offers "Archive" (with a "Restore" action for archived studies) instead of "Delete".
 
 ## Home / Start screen (order)
 
@@ -69,13 +73,13 @@ Seed templates (modality / region / name / shortName):
 - DB is authoritative; client interval only renders. `active_duration = (now|finished_at) − started_at − paused_duration (incl. current pause)`.
 - Survives refresh, tab/browser close, other devices.
 - Pause/resume/finish idempotent where practical. Pause never implies a tag. Record `timing_pause_events`.
-- Finish is immediate: compute & persist duration, status COMPLETED, complexity TYPICAL, no tags, then show post-case panel. Finish while paused works (pause ends at pause_started_at).
+- Finish is immediate: compute & persist duration, status COMPLETED, complexity TYPICAL, no tags, then show post-case panel. `finished_at` is always the server clock at the moment Finish is called, even if PAUSED — finishing while paused closes the open pause interval at `finished_at` (added to `paused_duration_ms`, `pause_started_at` cleared) rather than backdating `finished_at` to when the pause began.
 - Finish failure: show "Could not save. Retry." and keep the timer recoverable. Network loss: keep displaying estimated elapsed; re-sync on reconnect.
 - Display: small, quiet, always visible across routes; minimize; hide elapsed time.
 
 ## Post-case panel
 
-Shows "Completed in 06:42", complexity [Easy][Typical ✓][Difficult], tags (Interrupted, Teaching, Technical issue, + custom), [Done], plus concise feedback: e.g. "8% faster than your recent comparable pace" or "Baseline building — case 3". No interaction required. Starting another case finalizes the previous panel.
+Shows "Completed in 06:42", complexity [Easy][Typical ✓][Difficult], tags (Interrupted, Teaching, Technical issue, + custom), [Done], plus concise feedback: e.g. "8% faster than your recent comparable pace" or "Baseline building — case 3". Feedback is recomputed after every complexity/tag change so it always reflects the case's current classification; if the case is now excluded from the benchmark (any exclude-from-benchmark tag), feedback reads "Not included in your personal benchmark" with no comparison. No interaction required. Starting another case finalizes the previous panel.
 
 ## Immutability
 
@@ -147,13 +151,13 @@ Secure/HttpOnly/SameSite cookies; CSRF protection (Better Auth origin checks; se
 - instance_settings (single row): registration_mode, smtp_enabled(derived from env), email_verification_required, telemetry_enabled, instance_name, maintenance_mode, created_at, updated_at.
 - invites: id, email nullable, token_hash, created_by, expires_at, used_at.
 - user_preferences: user_id PK, theme (light|dark|system), timer_visibility (full|minimized|hidden_time), keyboard_shortcuts_json, created_at, updated_at.
-- user_study_types: id, user_id, modality, body_region, name, short_name, sort_order, favorite, created_from_template, created_at, updated_at.
+- user_study_types: id, user_id, modality, body_region, name, short_name, sort_order, favorite, created_from_template, archived_at?, created_at, updated_at.
 - timing_entries: id, user_id, study_type_id, status, started_at, pause_started_at?, paused_duration_ms, finished_at?, active_duration_ms?, complexity, classification_finalized_at?, imported_at?, created_at. Partial unique index on (user_id) WHERE status IN ('ACTIVE','PAUSED').
 - timing_pause_events: id, timing_entry_id, paused_at, resumed_at?.
 - tags: id, user_id, name, built_in, exclude_from_benchmark, created_at; unique(user_id, lower(name)).
 - timing_entry_tags: timing_entry_id, tag_id (PK both).
 - achievement_events: id, user_id, achievement_key, study_type_id?, earned_at, metadata_json; unique(user_id, achievement_key, study_type_id).
-  All user FKs ON DELETE CASCADE. Deleting a study type cascades its timings (confirm in UI with count).
+  Every other user-owned FK is ON DELETE CASCADE. `timing_entries.study_type_id` is the one exception — ON DELETE NO ACTION (checked at end of statement), so a study type's history can never be destroyed by deleting it; the app only allows deleting a study type with zero timings, and archives (see "Study types") instead of deleting otherwise. Account deletion still works: deleting a `user` row cascades both `user_study_types` and `timing_entries` directly (each has its own `user_id` FK), in the same statement, and the NO ACTION check runs at end of statement.
 
 ## Keyboard shortcuts (per-user configurable, collision-checked, not while typing in inputs)
 

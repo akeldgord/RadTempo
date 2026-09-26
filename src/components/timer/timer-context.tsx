@@ -239,7 +239,15 @@ export function TimerProvider({
         complexity,
       });
       if (result.ok) {
-        setPanel((p) => (p ? { ...p, entry: result.data } : p));
+        setPanel((p) =>
+          p
+            ? {
+                ...p,
+                entry: result.data.entry,
+                feedbackText: result.data.feedbackText,
+              }
+            : p,
+        );
       } else {
         // Immutable/expired: hide the panel gracefully.
         setPanel(null);
@@ -255,7 +263,15 @@ export function TimerProvider({
       setPanel((p) => (p ? { ...p, entry: { ...p.entry, tagIds } } : p));
       const result = await classifyEntryAction(current.entry.id, { tagIds });
       if (result.ok) {
-        setPanel((p) => (p ? { ...p, entry: result.data } : p));
+        setPanel((p) =>
+          p
+            ? {
+                ...p,
+                entry: result.data.entry,
+                feedbackText: result.data.feedbackText,
+              }
+            : p,
+        );
       } else {
         setPanel(null);
       }

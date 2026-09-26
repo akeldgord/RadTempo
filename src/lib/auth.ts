@@ -4,13 +4,22 @@ import { db } from "@/db";
 import * as schema from "@/db/schema";
 import { count, eq } from "drizzle-orm";
 import { user as userTable } from "@/db/schema";
-import { isSmtpConfigured, sendMail } from "@/server/mailer";
+import { sendMail } from "@/server/mailer";
+import { isEmailVerificationRequired } from "@/server/settings";
 import { isRegistrationAllowedInCurrentContext } from "@/server/registration-gate";
 
 async function userCount(): Promise<number> {
   const rows = await db.select({ value: count() }).from(userTable);
   return rows[0]?.value ?? 0;
 }
+
+// EMAIL_VERIFICATION_REQUIRED is the single source of truth for whether
+// email verification is enforced (no DB setting is consulted here) — and
+// it only takes effect when SMTP is configured, since verification mail
+// cannot be sent otherwise. Computed once at module load, matching Better
+// Auth's own config-at-construction model. See docs/SPEC.md "Auth &
+// accounts".
+const emailVerificationRequired = isEmailVerificationRequired();
 
 export const auth = betterAuth({
   baseURL: process.env.APP_URL ?? "http://localhost:3000",
@@ -23,7 +32,7 @@ export const auth = betterAuth({
   emailAndPassword: {
     enabled: true,
     minPasswordLength: 8,
-    requireEmailVerification: false,
+    requireEmailVerification: emailVerificationRequired,
     sendResetPassword: async ({ user, url }) => {
       await sendMail({
         to: user.email,
@@ -33,8 +42,7 @@ export const auth = betterAuth({
     },
   },
   emailVerification: {
-    sendOnSignUp:
-      isSmtpConfigured() && process.env.EMAIL_VERIFICATION_REQUIRED === "true",
+    sendOnSignUp: emailVerificationRequired,
     autoSignInAfterVerification: true,
     sendVerificationEmail: async ({ user, url }) => {
       await sendMail({

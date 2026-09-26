@@ -5,6 +5,7 @@ import {
   resetKeyboardShortcutsAction,
   updatePreferencesAction,
 } from "@/features/preferences/actions";
+import { useKeyboardShortcuts } from "@/components/keyboard-shortcuts-provider";
 import type { KeyboardShortcuts } from "@/features/preferences/service";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -39,6 +40,9 @@ export function ShortcutsSection({
     useState<SingleShortcutField | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
+  // Keeps the global shortcuts context (used for hints elsewhere, e.g. the
+  // timer bar's Pause/Finish buttons) in sync as soon as a change is saved.
+  const { setShortcuts: setGlobalShortcuts } = useKeyboardShortcuts();
 
   async function persist(next: KeyboardShortcuts) {
     setSaving(true);
@@ -46,7 +50,9 @@ export function ShortcutsSection({
     setSaving(false);
     if (!result.ok) {
       setError(result.error);
+      return;
     }
+    setGlobalShortcuts(next);
   }
 
   function handleCapture(field: SingleShortcutField, e: React.KeyboardEvent) {
@@ -69,6 +75,7 @@ export function ShortcutsSection({
     const result = await resetKeyboardShortcutsAction();
     if (result.ok) {
       setShortcuts(result.data.keyboardShortcuts);
+      setGlobalShortcuts(result.data.keyboardShortcuts);
       setError(null);
     }
   }

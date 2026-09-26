@@ -37,6 +37,7 @@ import type {
   PostCaseFeedback,
 } from "@/features/analytics/types";
 import { assertOwnsTags } from "@/features/tags/service";
+import { tagsIncludeExcluded } from "@/features/studies/service";
 import {
   ImmutableError,
   NotFoundError,
@@ -229,7 +230,7 @@ export async function startTimer(
   now: Date = new Date(),
 ): Promise<{ timer: TimerState; existing: boolean }> {
   const owned = await db
-    .select({ id: userStudyTypes.id })
+    .select({ id: userStudyTypes.id, archivedAt: userStudyTypes.archivedAt })
     .from(userStudyTypes)
     .where(
       and(
@@ -239,6 +240,11 @@ export async function startTimer(
     )
     .limit(1);
   if (!owned[0]) throw new NotFoundError("Study type not found");
+  if (owned[0].archivedAt != null) {
+    throw new ValidationError(
+      "This study type is archived and can't be started. Restore it from the Studies page first.",
+    );
+  }
 
   return db.transaction(async (tx) => {
     await tx
@@ -464,10 +470,53 @@ export async function discardActiveTimer(
 // ---------------------------------------------------------------------------
 
 /**
+ * Computes refreshed post-case feedback for a COMPLETED entry from its
+ * current complexity/tags: if the entry is now excluded from the benchmark
+ * (any exclude-from-benchmark tag), feedback is `{ kind: "EXCLUDED" }` with
+ * no comparison; otherwise it's computed from the entry's study history the
+ * normal way. Shared by `finishTimer` and `classifyEntry` so a
+ * (re)classification always shows feedback consistent with the final
+ * complexity/tags.
+ */
+async function computeFeedbackForEntry(
+  db: DbClient,
+  userId: string,
+  summary: CompletedEntrySummary,
+): Promise<PostCaseFeedback> {
+  const excluded = await tagsIncludeExcluded(db, summary.tagIds);
+  if (excluded) {
+    return { kind: "EXCLUDED", caseNumber: 0, recentPaceMs: null };
+  }
+
+  const allCases = await loadUserCases(db, userId);
+  const factors = computeComplexityFactors(allCases);
+  const studyCases = allCases.filter(
+    (c) => c.studyTypeId === summary.studyTypeId,
+  );
+  const targetCase: CaseRecord = studyCases.find(
+    (c) => c.id === summary.id,
+  ) ?? {
+    id: summary.id,
+    studyTypeId: summary.studyTypeId,
+    startedAt: summary.startedAt,
+    finishedAt: summary.finishedAt,
+    activeDurationMs: summary.activeDurationMs,
+    complexity: summary.complexity,
+    excluded: false,
+    tagIds: summary.tagIds,
+  };
+
+  return postCaseFeedback(targetCase, studyCases, factors);
+}
+
+/**
  * Completes a timer. Idempotent: finishing an already-COMPLETED entry
- * returns its existing result rather than erroring. Finishing while PAUSED
- * closes the pause at `pause_started_at` — time spent paused, including the
- * open pause, never counts toward `active_duration_ms`.
+ * returns its existing result rather than erroring. `finished_at` is always
+ * the server's clock at the moment Finish is called — even if the timer was
+ * PAUSED. If paused, the still-open interval (`now - pause_started_at`) is
+ * added to `paused_duration_ms`, the open `timing_pause_events` row is
+ * closed at `finished_at`, and `pause_started_at` is cleared.
+ * `active_duration_ms = finished_at - started_at - total paused`.
  */
 export async function finishTimer(
   db: DbClient,
@@ -489,15 +538,15 @@ export async function finishTimer(
         throw new ValidationError("Timer cannot be finished from this state");
       }
 
-      const finishedAt =
+      const finishedAt = now;
+      const pausedDurationMs =
         entry.status === "PAUSED" && entry.pauseStartedAt
-          ? entry.pauseStartedAt
-          : now;
+          ? entry.pausedDurationMs +
+            Math.max(0, finishedAt.getTime() - entry.pauseStartedAt.getTime())
+          : entry.pausedDurationMs;
       const activeDurationMs = Math.max(
         0,
-        finishedAt.getTime() -
-          entry.startedAt.getTime() -
-          entry.pausedDurationMs,
+        finishedAt.getTime() - entry.startedAt.getTime() - pausedDurationMs,
       );
 
       const updated = await tx
@@ -507,6 +556,7 @@ export async function finishTimer(
           finishedAt,
           activeDurationMs,
           pauseStartedAt: null,
+          pausedDurationMs,
           complexity: "TYPICAL",
         })
         .where(eq(timingEntries.id, entryId))
@@ -533,23 +583,7 @@ export async function finishTimer(
       shortName,
     );
 
-    const allCases = await loadUserCases(tx, userId);
-    const factors = computeComplexityFactors(allCases);
-    const studyCases = allCases.filter(
-      (c) => c.studyTypeId === entry.studyTypeId,
-    );
-    const targetCase: CaseRecord = studyCases.find((c) => c.id === entryId) ?? {
-      id: entryId,
-      studyTypeId: entry.studyTypeId,
-      startedAt: summary.startedAt,
-      finishedAt: summary.finishedAt,
-      activeDurationMs: summary.activeDurationMs,
-      complexity: summary.complexity,
-      excluded: false,
-      tagIds: summary.tagIds,
-    };
-
-    const feedback = postCaseFeedback(targetCase, studyCases, factors);
+    const feedback = await computeFeedbackForEntry(tx, userId, summary);
 
     return {
       entry: summary,
@@ -564,11 +598,20 @@ export async function finishTimer(
 // Classification (complexity + tags)
 // ---------------------------------------------------------------------------
 
+export interface ClassifyResult {
+  entry: CompletedEntrySummary;
+  feedback: PostCaseFeedback;
+  feedbackText: string;
+}
+
 /**
  * Sets complexity and/or the tag set on a COMPLETED, not-yet-finalized
  * entry. Throws `ImmutableError` if the entry is finalized, or if the
  * classification window (10 min after finish) has elapsed — lazily
- * finalizing it first so subsequent reads see it as immutable too.
+ * finalizing it first so subsequent reads see it as immutable too. Returns
+ * feedback recomputed from the entry's final complexity/tags (see
+ * `computeFeedbackForEntry`), so the post-case panel reflects the same
+ * classification it just applied.
  */
 export async function classifyEntry(
   db: DbClient,
@@ -576,7 +619,7 @@ export async function classifyEntry(
   entryId: string,
   input: { complexity?: Complexity; tagIds?: string[] },
   now: Date = new Date(),
-): Promise<CompletedEntrySummary> {
+): Promise<ClassifyResult> {
   // Read + lazy-finalize check happens outside the mutation transaction
   // below: if we're past the window we need the finalize write to persist
   // even though we then throw, so it can't share a transaction that gets
@@ -650,7 +693,18 @@ export async function classifyEntry(
       .from(timingEntries)
       .where(eq(timingEntries.id, entryId))
       .limit(1);
-    return buildCompletedSummary(tx, refreshed[0], studyName, shortName);
+    const summary = await buildCompletedSummary(
+      tx,
+      refreshed[0],
+      studyName,
+      shortName,
+    );
+    const feedback = await computeFeedbackForEntry(tx, userId, summary);
+    return {
+      entry: summary,
+      feedback,
+      feedbackText: formatFeedbackText(feedback),
+    };
   });
 }
 

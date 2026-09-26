@@ -26,6 +26,8 @@ import {
   computeOverview,
   computeStudyStats,
   computeTrend,
+  MIN_STUDY_N,
+  personalPercentile as personalPercentileEngine,
 } from "./engine";
 import { loadUserCases } from "./repository";
 import type {
@@ -199,6 +201,11 @@ export interface RecentCaseRow {
    * color-only. Empty for an included case. */
   excludingTagNames: string[];
   tagNames: string[];
+  /** Fraction of the user's prior eligible adjusted reads of this same
+   * study that this read was faster than. Null when fewer than
+   * MIN_PERCENTILE_PRIOR_N prior eligible cases exist. Never a
+   * population/peer comparison — always this user's own history. */
+  personalPercentile: number | null;
 }
 
 export interface StudyAnalyticsData {
@@ -217,9 +224,41 @@ export interface StudyAnalyticsData {
   /** Total case count matching the filters (before the 20-row cap). */
   filteredCount: number;
   availableTags: { id: string; name: string; excludeFromBenchmark: boolean }[];
+  /** Personal percentile for the most recent completed eligible case of
+   * this study, vs. only its own prior eligible cases. Null when there
+   * is no eligible case yet or fewer than MIN_PERCENTILE_PRIOR_N priors.
+   * Never a population/peer comparison. */
+  personalPercentile: number | null;
 }
 
 const RECENT_CASES_LIMIT = 20;
+
+/**
+ * Minimum number of PRIOR eligible cases of the same study required before
+ * a personal percentile is shown at all (below this the sample is too thin
+ * to be meaningful) — reuses the engine's benchmark-maturity threshold.
+ * See docs/SPEC.md "Analytics" (personal percentile).
+ */
+const MIN_PERCENTILE_PRIOR_N = MIN_STUDY_N;
+
+/**
+ * Personal percentile for `target` against only the cases of the same
+ * study that finished strictly before it (never the case itself, never
+ * later cases). Excluded-tag priors are dropped by the engine itself.
+ * Null when fewer than MIN_PERCENTILE_PRIOR_N eligible priors exist.
+ */
+function personalPercentileForCase(
+  target: CaseRecord,
+  sortedStudyCasesAsc: CaseRecord[],
+  factors: ComplexityFactors,
+): number | null {
+  const idx = sortedStudyCasesAsc.findIndex((c) => c.id === target.id);
+  const priors =
+    idx === -1 ? sortedStudyCasesAsc : sortedStudyCasesAsc.slice(0, idx);
+  const priorEligibleCount = priors.filter((c) => !c.excluded).length;
+  if (priorEligibleCount < MIN_PERCENTILE_PRIOR_N) return null;
+  return personalPercentileEngine(target, priors, factors);
+}
 
 function matchesFilters(
   c: CaseRecord,
@@ -281,6 +320,20 @@ export async function getStudyAnalytics(
   const filtered = studyCases.filter((c) => matchesFilters(c, filters));
   const trend = computeTrend(filtered, factors, "week");
 
+  const sortedStudyCasesAsc = [...studyCases].sort(
+    (a, b) => a.finishedAt.getTime() - b.finishedAt.getTime(),
+  );
+  const mostRecentEligible = sortedStudyCasesAsc
+    .filter((c) => !c.excluded)
+    .at(-1);
+  const personalPercentile = mostRecentEligible
+    ? personalPercentileForCase(
+        mostRecentEligible,
+        sortedStudyCasesAsc,
+        factors,
+      )
+    : null;
+
   const tagRows = await db
     .select({
       id: tagsTable.id,
@@ -320,6 +373,11 @@ export async function getStudyAnalytics(
         excluded: c.excluded,
         excludingTagNames,
         tagNames,
+        personalPercentile: personalPercentileForCase(
+          c,
+          sortedStudyCasesAsc,
+          factors,
+        ),
       };
     });
 
@@ -333,5 +391,6 @@ export async function getStudyAnalytics(
     recentCases,
     filteredCount: filtered.length,
     availableTags: tagRows,
+    personalPercentile,
   };
 }

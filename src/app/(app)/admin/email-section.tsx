@@ -9,22 +9,31 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import {
-  sendTestEmailAction,
-  updateEmailVerificationAction,
-} from "@/features/admin/actions";
+import { sendTestEmailAction } from "@/features/admin/actions";
+
+/**
+ * Email verification is controlled entirely by the EMAIL_VERIFICATION_REQUIRED
+ * env var (and whether SMTP is configured) — see `src/lib/auth.ts` and
+ * docs/SPEC.md "Auth & accounts". There is no admin-editable DB setting;
+ * this section only reports the resulting, computed status.
+ */
+function verificationStatusLabel(emailVerificationRequired: boolean): string {
+  return emailVerificationRequired
+    ? "Required — configured via environment"
+    : "Not required";
+}
 
 export function EmailSection({
   smtpEnabled,
   smtpHost,
   emailVerificationRequired,
+  emailVerificationEnvRequested,
 }: {
   smtpEnabled: boolean;
   smtpHost: string | null;
   emailVerificationRequired: boolean;
+  emailVerificationEnvRequested: boolean;
 }) {
-  const [verificationState, verificationAction, verificationPending] =
-    useActionState(updateEmailVerificationAction, null);
   const [testState, testAction, testPending] = useActionState(
     async () => sendTestEmailAction(),
     null,
@@ -47,36 +56,21 @@ export function EmailSection({
           </span>
         </p>
 
-        <form
-          action={verificationAction}
-          className="flex flex-wrap items-end gap-3"
-        >
-          <label className="flex items-center gap-2 text-sm text-foreground">
-            <input
-              type="checkbox"
-              name="emailVerificationRequired"
-              value="true"
-              defaultChecked={emailVerificationRequired}
-              disabled={!smtpEnabled}
-            />
-            Require email verification
-            {!smtpEnabled && (
-              <span className="text-muted"> (requires SMTP)</span>
-            )}
-          </label>
-          <Button
-            type="submit"
-            size="sm"
-            disabled={verificationPending || !smtpEnabled}
-          >
-            {verificationPending ? "Saving..." : "Save"}
-          </Button>
-          {verificationState && !verificationState.ok && (
-            <p role="alert" className="w-full text-sm text-danger">
-              {verificationState.error}
-            </p>
+        <p className="text-sm text-foreground">
+          Email verification:{" "}
+          <span className="font-medium">
+            {verificationStatusLabel(emailVerificationRequired)}
+          </span>
+          {emailVerificationEnvRequested && !emailVerificationRequired && (
+            <span className="block text-xs text-muted">
+              Not enforced: SMTP not configured.
+            </span>
           )}
-        </form>
+          <span className="block text-xs text-muted">
+            Configured via the EMAIL_VERIFICATION_REQUIRED environment variable
+            — there is no in-app setting.
+          </span>
+        </p>
 
         <form action={testAction}>
           <Button

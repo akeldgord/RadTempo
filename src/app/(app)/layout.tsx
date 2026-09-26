@@ -43,33 +43,34 @@ export default async function AppLayout({
       initialTimer={activeTimer}
       initialTimerVisibility={preferences.timerVisibility}
     >
-      <div className="flex min-h-screen">
-        <Sidebar isAdmin={user.role === "ADMIN"} className="hidden md:flex" />
-        <div className="flex flex-1 flex-col">
-          <MobileNav isAdmin={user.role === "ADMIN"} />
-          <header className="hidden h-14 items-center justify-end gap-4 border-b border-border bg-card px-6 md:flex">
-            <span className="text-sm text-muted">{user.email}</span>
-            <SignOutButton />
-          </header>
-          {maintenanceMode && (
-            <div
-              role="status"
-              className="border-b border-border bg-danger/10 px-6 py-2 text-sm font-medium text-danger"
-            >
-              Maintenance mode is on. A restore may be in progress; some actions
-              may be temporarily unavailable.
-            </div>
-          )}
-          <TimerBar />
-          <main className="flex-1 bg-background px-4 py-8 sm:px-6">
-            {children}
-          </main>
-        </div>
-      </div>
       <KeyboardShortcutsProvider
-        shortcuts={preferences.keyboardShortcuts}
+        initialShortcuts={preferences.keyboardShortcuts}
         favorites={homeSections.favorites}
-      />
+      >
+        <div className="flex min-h-screen">
+          <Sidebar isAdmin={user.role === "ADMIN"} className="hidden md:flex" />
+          <div className="flex flex-1 flex-col">
+            <MobileNav isAdmin={user.role === "ADMIN"} />
+            <header className="hidden h-14 items-center justify-end gap-4 border-b border-border bg-card px-6 md:flex">
+              <span className="text-sm text-muted">{user.email}</span>
+              <SignOutButton />
+            </header>
+            {maintenanceMode && (
+              <div
+                role="status"
+                className="border-b border-border bg-danger/10 px-6 py-2 text-sm font-medium text-danger"
+              >
+                Maintenance mode is on. A restore may be in progress; some
+                actions may be temporarily unavailable.
+              </div>
+            )}
+            <TimerBar />
+            <main className="flex-1 bg-background px-4 py-8 sm:px-6">
+              {children}
+            </main>
+          </div>
+        </div>
+      </KeyboardShortcutsProvider>
     </TimerProvider>
   );
 }
