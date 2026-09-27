@@ -56,6 +56,7 @@ jobs:
           DATABASE_URL: postgres://radtempo:radtempo@localhost:5432/radtempo_e2e
           E2E_DATABASE_URL: postgres://radtempo:radtempo@localhost:5432/radtempo_e2e
           AUTH_SECRET: dummy-ci-secret-not-for-production-use-only
+          SETUP_TOKEN: dummy-ci-setup-token-not-for-production-use-only
           APP_URL: http://localhost:3000
           # Unset: CI installs its own Playwright browsers via
           # `playwright install --with-deps`, unlike the local

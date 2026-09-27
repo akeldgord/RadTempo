@@ -3,7 +3,7 @@ import { db } from "@/db";
 import { user as userTable } from "@/db/schema";
 import { auth } from "@/lib/auth";
 import { getInstanceSettings } from "@/server/settings";
-import { findValidInvite, consumeInvite } from "@/server/invites";
+import { claimInvite } from "@/server/invites";
 import { runWithRegistrationAllowed } from "@/server/registration-gate";
 
 export class RegistrationDeniedError extends Error {
@@ -32,31 +32,33 @@ export async function registerUser(input: {
   inviteToken?: string;
 }) {
   const existingUsers = await userCount();
-  const isFirstUser = existingUsers === 0;
+  if (existingUsers === 0) {
+    // Self-registration can never create the first account — that only
+    // ever happens through the trusted /setup flow (see src/app/setup).
+    throw new RegistrationDeniedError(
+      "This instance has not been set up yet. Visit /setup to create the initial administrator account.",
+    );
+  }
 
-  let inviteId: string | null = null;
-
-  if (!isFirstUser) {
-    const settings = await getInstanceSettings();
-    if (settings.registrationMode === "open") {
-      // allowed
-    } else {
-      if (!input.inviteToken) {
-        throw new RegistrationDeniedError(
-          "An invite is required to register on this instance.",
-        );
-      }
-      const invite = await findValidInvite(input.inviteToken, input.email);
-      if (!invite) {
-        throw new RegistrationDeniedError(
-          "This invite is invalid, expired, or already used.",
-        );
-      }
-      inviteId = invite.id;
+  const settings = await getInstanceSettings();
+  if (settings.registrationMode !== "open") {
+    if (!input.inviteToken) {
+      throw new RegistrationDeniedError(
+        "An invite is required to register on this instance.",
+      );
+    }
+    // Atomically claim the invite (single UPDATE ... RETURNING) *before*
+    // creating the account, so two concurrent registrations racing on the
+    // same single-use invite can never both succeed.
+    const invite = await claimInvite(input.inviteToken, input.email);
+    if (!invite) {
+      throw new RegistrationDeniedError(
+        "This invite is invalid, expired, or already used.",
+      );
     }
   }
 
-  const result = await runWithRegistrationAllowed(() =>
+  return runWithRegistrationAllowed(() =>
     auth.api.signUpEmail({
       body: {
         email: input.email,
@@ -65,10 +67,4 @@ export async function registerUser(input: {
       },
     }),
   );
-
-  if (inviteId) {
-    await consumeInvite(inviteId);
-  }
-
-  return result;
 }

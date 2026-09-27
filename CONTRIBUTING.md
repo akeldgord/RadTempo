@@ -28,3 +28,7 @@ pnpm typecheck        # TypeScript
 ```
 
 Please make sure `pnpm lint`, `pnpm format:check`, `pnpm typecheck`, and the test suites pass before opening a pull request — CI runs the same checks.
+
+## Maintainer note: commit author privacy
+
+Maintainers should enable GitHub's email privacy setting (Settings → Emails → "Keep my email addresses private") and configure git to use the resulting `users.noreply.github.com` address for authorship (`git config user.email <id>+<username>@users.noreply.github.com`), so real email addresses aren't published in commit history on this source-available repository.

@@ -14,13 +14,6 @@ const csp = [
 
 const nextConfig: NextConfig = {
   output: "standalone",
-  experimental: {
-    serverActions: {
-      // Import/export uploads a zip (data cap: 50MB); leave headroom for
-      // multipart/form-data overhead.
-      bodySizeLimit: "55mb",
-    },
-  },
   async headers() {
     return [
       {

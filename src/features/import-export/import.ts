@@ -18,7 +18,7 @@
  */
 
 import { randomUUID } from "node:crypto";
-import { unzipSync, strFromU8 } from "fflate";
+import { strFromU8 } from "fflate";
 import { eq, inArray } from "drizzle-orm";
 import type { DbClient } from "@/db";
 import {
@@ -42,6 +42,7 @@ import {
   type ImportBundle,
 } from "./schema";
 import { uuidv5 } from "./uuid";
+import { extractZipBounded } from "./zip";
 
 export type ParseImportResult =
   { ok: true; bundle: ImportBundle } | { ok: false; error: string };
@@ -71,15 +72,11 @@ export function parseImport(buffer: Buffer): ParseImportResult {
     };
   }
 
-  let unzipped: Record<string, Uint8Array>;
-  try {
-    unzipped = unzipSync(buffer);
-  } catch {
-    return {
-      ok: false,
-      error: "Could not read the uploaded file as a zip archive.",
-    };
+  const extracted = extractZipBounded(buffer);
+  if (!extracted.ok) {
+    return { ok: false, error: extracted.error };
   }
+  const unzipped = extracted.files;
 
   const raw: Record<string, unknown> = {};
   for (const file of REQUIRED_FILES) {

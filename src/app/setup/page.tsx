@@ -1,5 +1,5 @@
 import { redirect } from "next/navigation";
-import { hasAnyUsers } from "@/server/setup-status";
+import { hasAnyUsers, isSetupConfigured } from "@/server/setup-status";
 import { SetupForm } from "./setup-form";
 
 // This page's redirect depends only on a DB row count, with no dynamic API
@@ -13,6 +13,8 @@ export default async function SetupPage() {
     redirect("/login");
   }
 
+  const configured = isSetupConfigured();
+
   return (
     <div className="flex flex-1 items-center justify-center px-4 py-16">
       <div className="w-full max-w-sm">
@@ -24,7 +26,14 @@ export default async function SetupPage() {
             Create the first administrator account for this instance.
           </p>
         </div>
-        <SetupForm />
+        {configured ? (
+          <SetupForm />
+        ) : (
+          <p role="alert" className="text-sm text-danger">
+            Initial setup is not configured. Set SETUP_TOKEN or initial
+            administrator credentials on the server.
+          </p>
+        )}
       </div>
     </div>
   );

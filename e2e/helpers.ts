@@ -18,6 +18,10 @@ import path from "node:path";
  */
 export const ADMIN_EMAIL = "e2e-admin@example.com";
 export const ADMIN_PASSWORD = "supersecret123";
+// Must match the SETUP_TOKEN the web server was started with (see
+// playwright.config.ts's webServer.env and .github/workflows/e2e.yml).
+export const SETUP_TOKEN =
+  process.env.SETUP_TOKEN ?? "e2e-setup-token-not-for-production-use-only";
 
 const ADMIN_STATE_PATH = path.join(__dirname, ".auth", "admin.json");
 
@@ -25,6 +29,7 @@ const ADMIN_STATE_PATH = path.join(__dirname, ".auth", "admin.json");
  * this from exactly one test in the whole e2e run. */
 export async function bootstrapAdmin(page: Page) {
   await page.goto("/setup");
+  await page.locator("#setupToken").fill(SETUP_TOKEN);
   await page.locator("#name").fill("E2E Admin");
   await page.locator("#email").fill(ADMIN_EMAIL);
   await page.locator("#password").fill(ADMIN_PASSWORD);

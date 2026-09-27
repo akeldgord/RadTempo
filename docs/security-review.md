@@ -27,5 +27,28 @@ a check against the running app (dev build) unless noted.
 
 ## Not addressed (out of scope / left as-is)
 
-- `src/app/register/actions.ts` and `src/app/setup/actions.ts` log the caught error object directly (`console.error("Registration failed:", error)`). These wrap `registerUser`/`setupAction`, which throw domain errors, not raw Zod errors, so the risk is low; left unchanged to avoid touching pre-auth flows outside this pass's focus. Recommend applying the same `{name,message,stack}` pattern here in a follow-up.
 - Import/export and account-deletion code paths (`src/features/import-export`, `src/features/account`, `src/app/api/export`, `src/app/(app)/settings/data`) were explicitly out of scope (owned by a concurrent agent) and were not reviewed or modified.
+
+## Public hosting remediation (2026-09-27)
+
+Follow-up pass closing gaps found before allowing this instance to be exposed publicly.
+
+1. **Closed the "first user bypasses the gate" hole.** `databaseHooks.user.create.before` in `src/lib/auth.ts` previously let _any_ signup through once zero users existed, so an unauthenticated visitor who won a race to hit Better Auth's sign-up endpoint directly (bypassing `/register`/`/setup`) before the operator finished setup could become the instance's ADMIN. Being first no longer grants permission by itself — every user creation, including the first, must run inside `runWithRegistrationAllowed()`. `registerUser()` now explicitly rejects self-registration while zero users exist (message points to `/setup`).
+2. **Added `SETUP_TOKEN`-gated `/setup`.** The interactive wizard now requires a setup token, compared with `crypto.timingSafeEqual` over SHA-256 digests (never the raw strings, avoiding length-based timing/length leaks), before it will create the account. The token is never logged, never returned to the client, and only ever read from the POST body (never a query string). If neither `SETUP_TOKEN` nor `INITIAL_ADMIN_EMAIL`/`INITIAL_ADMIN_PASSWORD` is configured, `/setup` fails closed with an explicit "not configured" message and creation is impossible.
+3. **Race-safety for first-admin creation.** Both `/setup` and `bootstrapInitialAdmin()` (env-var bootstrap on startup) now run their check-and-create under a shared Postgres advisory transaction lock (`runExclusiveFirstUserSetup` in `src/server/registration-gate.ts`), so two concurrent setup attempts, or a setup attempt racing the startup bootstrap, can create at most one admin.
+4. **Atomic, race-safe invite consumption.** `src/server/invites.ts`'s `findValidInvite`/`consumeInvite` (check-then-update, racy under concurrent registrations) were replaced with `claimInvite()`, a single conditional `UPDATE ... RETURNING` that claims the invite before the account is created — two concurrent registrations on the same single-use invite can now only ever have one succeed.
+5. **Open-redirect fix.** Added `src/lib/safe-redirect.ts` (`sanitizeInternalRedirect`), applied to the login form's `?next=` handling, rejecting anything but a same-origin in-app path (no `//`, `/\`, backslashes, control characters, or other-origin/`javascript:`/`data:` URLs).
+6. **Stopped logging user-identifying data.** `src/server/mailer.ts`'s SMTP-disabled log no longer includes the recipient's email. `src/server/bootstrap.ts` no longer logs the initial admin's email. `src/app/register/actions.ts` and `src/instrumentation.ts` now log only `{name, message, stack}` from caught errors (matching `src/server/action-result.ts`'s existing pattern) instead of the raw error object, closing the follow-up noted in the previous pass.
+
+### Launch gate
+
+Do **not** expose this instance publicly until:
+
+- `next` and `eslint-config-next` are upgraded to `16.3.7` and `pnpm lint`/`pnpm build` are green on that version.
+- The production `.env` has been reviewed against this checklist:
+  - A real, freshly generated `AUTH_SECRET` (not the example value).
+  - A unique, strong `POSTGRES_PASSWORD` (not `changeme`).
+  - `APP_URL` set to the exact public `https://` origin (no trailing slash, no mismatch with the reverse proxy's certificate).
+  - `SETUP_TOKEN` set to a freshly generated value, and cleared/rotated after first-run setup completes.
+  - The bundled Caddy overlay (`docker-compose.caddy.yml`) is used for TLS termination — the app container's port is never published directly to the host.
+  - `postgres` remains unexposed (no host port published), as verified above.

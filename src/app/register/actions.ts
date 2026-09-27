@@ -34,7 +34,13 @@ export async function registerAction(
     if (error instanceof RegistrationDeniedError) {
       return { ok: false, error: error.message };
     }
-    console.error("Registration failed:", error);
+    // Log only name/message/stack, never the raw error object or the
+    // submitted email/password — see docs/security-review.md.
+    const safe =
+      error instanceof Error
+        ? { name: error.name, message: error.message, stack: error.stack }
+        : String(error);
+    console.error("Registration failed:", safe);
     return { ok: false, error: "Could not create your account." };
   }
 }

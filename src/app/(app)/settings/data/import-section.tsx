@@ -2,10 +2,6 @@
 
 import { useRef, useState } from "react";
 import { Upload } from "lucide-react";
-import {
-  applyImportAction,
-  previewImportAction,
-} from "@/features/import-export/actions";
 import type {
   ApplyImportResult,
   ImportPreview,
@@ -14,6 +10,48 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
+
+type FetchResult<T> = { ok: true; data: T } | { ok: false; error: string };
+
+/** Posts the raw file as the request body (never multipart/FormData) so
+ * the route handler can enforce its byte cap while streaming the body,
+ * rather than after an unbounded parse. */
+async function postZip<T>(url: string, file: File): Promise<FetchResult<T>> {
+  let response: Response;
+  try {
+    response = await fetch(url, {
+      method: "POST",
+      headers: { "content-type": "application/zip" },
+      body: file,
+    });
+  } catch {
+    return {
+      ok: false,
+      error: "Could not reach the server. Please try again.",
+    };
+  }
+
+  if (response.status === 413) {
+    return {
+      ok: false,
+      error: "This file is too large to import.",
+    };
+  }
+  if (response.status === 415) {
+    return { ok: false, error: "Please choose a .zip export file." };
+  }
+  if (response.status === 401) {
+    return { ok: false, error: "Please sign in again to continue." };
+  }
+
+  let body: FetchResult<T>;
+  try {
+    body = await response.json();
+  } catch {
+    return { ok: false, error: "Could not read the server's response." };
+  }
+  return body;
+}
 
 export function ImportSection() {
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -42,9 +80,10 @@ export function ImportSection() {
     if (!selected) return;
 
     setLoading("preview");
-    const formData = new FormData();
-    formData.set("file", selected);
-    const previewResult = await previewImportAction(formData);
+    const previewResult = await postZip<ImportPreview>(
+      "/api/import/preview",
+      selected,
+    );
     setLoading(null);
     if (!previewResult.ok) {
       setError(previewResult.error);
@@ -57,10 +96,10 @@ export function ImportSection() {
     if (!file) return;
     setError(null);
     setLoading("apply");
-    const formData = new FormData();
-    formData.set("file", file);
-    formData.set("applyPreferences", applyPreferences ? "true" : "false");
-    const applyResult = await applyImportAction(formData);
+    const applyResult = await postZip<ApplyImportResult>(
+      `/api/import/apply?applyPreferences=${applyPreferences ? "true" : "false"}`,
+      file,
+    );
     setLoading(null);
     if (!applyResult.ok) {
       setError(applyResult.error);
