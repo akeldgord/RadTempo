@@ -35,15 +35,18 @@ export function ComplexityDistributionBars({
               {label}
             </span>
             <div
-              className="h-2 flex-1 rounded-full bg-muted-bg"
+              className="relative h-4 flex-1 border-b border-border"
               aria-hidden="true"
             >
               <div
-                className="h-2 rounded-full bg-primary"
+                className="absolute inset-y-0 left-0 border-b-2 border-caliper"
                 style={{ width: `${pct}%` }}
               />
             </div>
-            <span className="w-10 shrink-0 text-right text-muted" role="cell">
+            <span
+              className="w-10 shrink-0 text-right font-mono tabular-nums text-muted"
+              role="cell"
+            >
               {count}
             </span>
           </div>
