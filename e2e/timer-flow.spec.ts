@@ -57,7 +57,12 @@ test("timer loop: start, refresh, pause, resume, finish, classify, dashboard, de
   // Dashboard reflects the case: no longer the "no history yet" empty state.
   await page.goto("/dashboard");
   await expect(page.getByText("No history yet.")).toHaveCount(0);
-  await expect(page.getByText(/1 case/)).toBeVisible();
+  // R2: the dashboard card's trend note distinguishes comparable from
+  // total reads (see dashboard-labels.ts) — for exactly one eligible read
+  // it reads "Baseline started, 1 comparable read", not "1 case".
+  await expect(
+    page.getByText("Baseline started, 1 comparable read"),
+  ).toBeVisible();
 
   // History shows exactly one completed, difficult case.
   await page.goto("/history");

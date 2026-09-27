@@ -1,4 +1,4 @@
-import type { Page } from "@playwright/test";
+import type { Browser, Page } from "@playwright/test";
 import { expect } from "@playwright/test";
 import { existsSync, mkdirSync } from "node:fs";
 import path from "node:path";
@@ -25,6 +25,26 @@ export const SETUP_TOKEN =
 
 const ADMIN_STATE_PATH = path.join(__dirname, ".auth", "admin.json");
 
+/**
+ * Opens a page already authenticated as the admin, from the cached
+ * storage state auth.spec.ts leaves behind — no `/sign-in/email` request
+ * at all, so it costs none of the shared rate-limit budget. Use this
+ * (rather than `createInvitedUser`) for a spec that doesn't need its own
+ * isolated account and would otherwise just spend another sign-up/sign-in
+ * pair for no reason (e.g. exercising a UI flow against arbitrary study
+ * types, as R3's e2e/r3.spec.ts does). Requires auth.spec.ts to already
+ * have run in this suite (it's the one that populates the cache).
+ */
+export async function openAdminPage(browser: Browser): Promise<Page> {
+  if (!existsSync(ADMIN_STATE_PATH)) {
+    throw new Error(
+      "openAdminPage: no cached admin session found — auth.spec.ts must run first in the suite",
+    );
+  }
+  const context = await browser.newContext({ storageState: ADMIN_STATE_PATH });
+  return context.newPage();
+}
+
 /** Creates the instance's one and only admin via the setup wizard. Call
  * this from exactly one test in the whole e2e run. */
 export async function bootstrapAdmin(page: Page) {
@@ -46,10 +66,31 @@ export async function login(page: Page, email: string, password: string) {
 
 export async function completeOnboarding(page: Page) {
   await page.waitForURL(/\/onboarding/);
-  await page.getByText("Continue").click();
-  await page.getByText("Continue").click();
-  await page.getByText("Continue").click();
-  await page.getByText("Start using RadTempo").click();
+  // Each step is a client-side state transition, not a navigation, so a
+  // fixed sequence of `getByText("Continue").click()` calls can outrun the
+  // re-render and click the previous step's button again (or race an
+  // ambiguous match). Wait for each step's own heading before clicking its
+  // Continue, and scope the click to the button role so it can't match
+  // stray "Continue" text elsewhere on the page.
+  await expect(
+    page.getByRole("heading", { name: "Welcome to RadTempo" }),
+  ).toBeVisible();
+  await page.getByRole("button", { name: "Continue" }).click();
+
+  await expect(
+    page.getByRole("heading", { name: "Before you start" }),
+  ).toBeVisible();
+  await page.getByRole("button", { name: "Continue" }).click();
+
+  await expect(
+    page.getByRole("heading", { name: "Study types" }),
+  ).toBeVisible();
+  await page.getByRole("button", { name: "Continue" }).click();
+
+  await expect(
+    page.getByRole("heading", { name: "Favorites (optional)" }),
+  ).toBeVisible();
+  await page.getByRole("button", { name: "Start using RadTempo" }).click();
   await page.waitForURL("/");
 }
 
