@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import Link from "next/link";
 import { Trash2 } from "lucide-react";
 import { deleteEntryAction, listHistoryAction } from "@/features/timer/actions";
 import type { HistoryRow } from "@/features/timer/service";
@@ -82,6 +83,20 @@ export function HistoryClient({
 
   function updateFilter<K extends keyof typeof filters>(key: K, value: string) {
     setFilters((f) => ({ ...f, [key]: value }));
+    setPage(0);
+  }
+
+  const hasActiveFilters = Object.values(filters).some((v) => v !== "");
+
+  function clearFilters() {
+    setFilters({
+      studyTypeId: "",
+      from: "",
+      to: "",
+      complexity: "",
+      included: "",
+      tagId: "",
+    });
     setPage(0);
   }
 
@@ -168,9 +183,27 @@ export function HistoryClient({
         <p className="py-6 text-center text-sm text-muted">Loading...</p>
       )}
       {!loading && rows.length === 0 && (
-        <p className="py-6 text-center text-sm text-muted">
-          No cases match these filters.
-        </p>
+        <div className="flex flex-col items-center gap-3 py-10 text-center">
+          <p className="text-sm text-muted">
+            {hasActiveFilters
+              ? "No cases match these filters."
+              : "No completed reads yet."}
+          </p>
+          {hasActiveFilters ? (
+            <Button
+              type="button"
+              variant="secondary"
+              size="sm"
+              onClick={clearFilters}
+            >
+              Clear filters
+            </Button>
+          ) : (
+            <Button asChild size="sm">
+              <Link href="/">Start a case</Link>
+            </Button>
+          )}
+        </div>
       )}
 
       {!loading && rows.length > 0 && (

@@ -69,7 +69,7 @@ export default async function AppLayout({
               </div>
             )}
             <TimerBar />
-            <main className="min-w-0 flex-1 bg-background px-4 py-8 sm:px-6">
+            <main className="min-w-0 flex-1 bg-background px-4 pb-[max(2rem,env(safe-area-inset-bottom))] pt-8 sm:px-6">
               {children}
             </main>
           </div>
