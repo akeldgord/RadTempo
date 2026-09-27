@@ -11,6 +11,13 @@ updates:
         update-types:
           - "minor"
           - "patch"
+    ignore:
+      # Types must match the Node.js runtime (22 in the Docker image and CI).
+      - dependency-name: "@types/node"
+        update-types: ["version-update:semver-major"]
+      # TypeScript 7 is a major rewrite; upgrade deliberately, not via bot.
+      - dependency-name: "typescript"
+        update-types: ["version-update:semver-major"]
 
   - package-ecosystem: "github-actions"
     directory: "/"
