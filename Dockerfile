@@ -24,7 +24,7 @@ ENV NEXT_TELEMETRY_DISABLED=1
 RUN pnpm build
 # Bundle the migration runner into a single plain-JS file so the runtime
 # image needs neither TypeScript nor a runner (tsx) to apply migrations.
-RUN npx esbuild src/db/migrate.ts --bundle --platform=node --format=cjs \
+RUN pnpm exec esbuild src/db/migrate.ts --bundle --platform=node --format=cjs \
   --outfile=dist/migrate.cjs
 
 # ---------------------------------------------------------------------------
