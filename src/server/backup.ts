@@ -4,6 +4,8 @@ import postgres from "postgres";
 import { drizzle } from "drizzle-orm/postgres-js";
 import { migrate } from "drizzle-orm/postgres-js/migrator";
 import { Encrypter, Decrypter } from "age-encryption";
+import { db } from "@/db";
+import { session } from "@/db/schema";
 import { getInstanceSettings, updateInstanceSettings } from "@/server/settings";
 
 export const MIN_BACKUP_PASSPHRASE_LENGTH = 12;
@@ -146,16 +148,26 @@ export async function decryptBackup(
 }
 
 /**
+ * Deletes every auth session. A restored dump contains the `session` rows
+ * that existed when the backup was taken, including ones revoked since, so
+ * they must never survive a restore.
+ */
+async function deleteAllSessions(): Promise<void> {
+  await db.delete(session);
+}
+
+/**
  * Full restore flow: decrypt first (so a wrong passphrase fails before any
  * database write happens), then enter maintenance mode, run
  * `pg_restore --clean --if-exists`, re-run migrations (in case the backup
- * predates a schema change), and finally turn maintenance mode back off —
- * since `pg_restore --clean` replaces `instance_settings` wholesale
- * (including whatever `maintenance_mode` value the backup had), the flag is
- * set explicitly after restore rather than relying on its pre-restore value.
+ * predates a schema change), delete every session, and finally turn
+ * maintenance mode back off. Since `pg_restore --clean` replaces
+ * `instance_settings` wholesale (including whatever `maintenance_mode` value
+ * the backup had), the flag is set explicitly after restore rather than
+ * relying on its pre-restore value.
  *
- * Restoring wipes the `session` table along with everything else, so every
- * signed-in user (including the admin who triggered this) is signed out.
+ * Every signed-in user (including the admin who triggered this) must sign in
+ * again afterwards.
  */
 export async function performRestore(
   passphrase: string,
@@ -164,10 +176,22 @@ export async function performRestore(
   const dump = await decryptBackup(passphrase, encrypted);
 
   await updateInstanceSettings({ maintenanceMode: true });
+  let sessionsCleared = false;
   try {
     await restoreDatabase(dump);
     await runMigrations();
+    await deleteAllSessions();
+    sessionsCleared = true;
   } finally {
+    // A failed restore may still have restored some session rows; clear
+    // them best-effort before leaving maintenance mode.
+    if (!sessionsCleared) {
+      try {
+        await deleteAllSessions();
+      } catch {
+        // ignore; the original error is rethrown below.
+      }
+    }
     // Best-effort: if this throws (e.g. the restored DB has no
     // instance_settings row), maintenance mode is off by default for a
     // freshly-created row anyway.
