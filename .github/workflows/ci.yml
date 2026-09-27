@@ -58,7 +58,8 @@ jobs:
       # the server's major version (the Postgres 18 service container).
       - name: Install PostgreSQL 18 client tools
         run: |
-          sudo apt-get update
+          sudo apt-get install -y postgresql-common
+          sudo /usr/share/postgresql-common/pgdg/apt.postgresql.org.sh -y
           sudo apt-get install -y postgresql-client-18
           echo "/usr/lib/postgresql/18/bin" >> "$GITHUB_PATH"
 
