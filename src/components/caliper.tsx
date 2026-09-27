@@ -1,3 +1,7 @@
+"use client";
+
+import { useEffect, useState } from "react";
+
 const WIDTH = 300;
 const HEIGHT = 46;
 const INSET = 12;
@@ -11,6 +15,11 @@ export interface CaliperProps {
   /** "This read" pace in ms — an optional extra marker for a single case,
    * e.g. on a study-detail page after Finish. */
   thisReadMs?: number | null;
+  /** When true, the "this read" marker slides in from the recent-pace
+   * position on mount (≤300ms ease-out; instant under reduced motion, via
+   * the global transition-duration override). Used for the one orchestrated
+   * moment in the post-case panel — see docs/SPEC.md. */
+  animateThisRead?: boolean;
   /** Formats a duration in ms for the tick labels (mm:ss). */
   formatDuration: (ms: number) => string;
   className?: string;
@@ -25,6 +34,7 @@ export function Caliper({
   recentMs,
   previousMs,
   thisReadMs,
+  animateThisRead = false,
   formatDuration,
   className,
 }: CaliperProps) {
@@ -35,6 +45,13 @@ export function Caliper({
   const hi = Math.max(...values) * 1.14;
   const span = hi - lo || 1;
   const x = (v: number) => INSET + ((v - lo) / span) * (WIDTH - INSET * 2);
+
+  const [settled, setSettled] = useState(!animateThisRead);
+  useEffect(() => {
+    if (!animateThisRead) return;
+    const id = requestAnimationFrame(() => setSettled(true));
+    return () => cancelAnimationFrame(id);
+  }, [animateThisRead]);
 
   const ticks = Array.from({ length: 21 }, (_, i) => {
     const tx = INSET + (i * (WIDTH - INSET * 2)) / 20;
@@ -112,12 +129,13 @@ export function Caliper({
       )}
       {thisReadMs != null && (
         <circle
-          cx={x(thisReadMs)}
+          cx={settled ? x(thisReadMs) : recentX}
           cy={TRACK_Y}
           r={3.5}
           fill="var(--color-viewport)"
           stroke="var(--color-caliper)"
           strokeWidth={2}
+          style={{ transition: "cx 280ms ease-out" }}
         />
       )}
       <path

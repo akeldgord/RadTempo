@@ -30,12 +30,13 @@ import type {
   CompletedEntrySummary,
   TimerState,
 } from "@/features/timer/service";
-import type { Complexity } from "@/features/analytics/types";
+import type { Complexity, PostCaseFeedback } from "@/features/analytics/types";
 import { updatePreferencesAction } from "@/features/preferences/actions";
 import type { NewlyEarnedAchievement } from "@/features/achievements/service";
 
 export interface PostCasePanelState {
   entry: CompletedEntrySummary;
+  feedback: PostCaseFeedback;
   feedbackText: string;
   durationText: string;
   newAchievements: NewlyEarnedAchievement[];
@@ -209,6 +210,7 @@ export function TimerProvider({
     setTimer(null);
     setPanel({
       entry: result.data.entry,
+      feedback: result.data.feedback,
       feedbackText: result.data.feedbackText,
       durationText: result.data.durationText,
       newAchievements: result.data.newAchievements,
@@ -244,6 +246,7 @@ export function TimerProvider({
             ? {
                 ...p,
                 entry: result.data.entry,
+                feedback: result.data.feedback,
                 feedbackText: result.data.feedbackText,
               }
             : p,
@@ -268,6 +271,7 @@ export function TimerProvider({
             ? {
                 ...p,
                 entry: result.data.entry,
+                feedback: result.data.feedback,
                 feedbackText: result.data.feedbackText,
               }
             : p,
