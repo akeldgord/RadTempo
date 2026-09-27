@@ -68,7 +68,7 @@ export function AlertDialogAction({
   variant = "primary",
   ...props
 }: React.ComponentProps<typeof AlertDialogPrimitive.Action> & {
-  variant?: "primary" | "danger";
+  variant?: "primary" | "danger" | "danger-outline";
 }) {
   return (
     <AlertDialogPrimitive.Action
