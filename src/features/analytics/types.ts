@@ -8,6 +8,14 @@
 
 export type Complexity = "EASY" | "TYPICAL" | "DIFFICULT";
 
+/** Sentence-case display labels for `Complexity` — the stored/compared
+ * values stay the upper-case enum; only presentation changes. */
+export const COMPLEXITY_LABEL: Record<Complexity, string> = {
+  EASY: "Easy",
+  TYPICAL: "Typical",
+  DIFFICULT: "Difficult",
+};
+
 export type Maturity = "NONE" | "EARLY" | "BUILDING" | "ESTABLISHED";
 
 /**

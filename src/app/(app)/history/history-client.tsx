@@ -8,6 +8,7 @@ import type { HistoryRow } from "@/features/timer/service";
 import type { StudyType } from "@/features/studies/service";
 import type { Tag } from "@/features/tags/service";
 import { formatDuration } from "@/features/analytics/engine";
+import { COMPLEXITY_LABEL } from "@/features/analytics/types";
 import { Button } from "@/components/ui/button";
 import { PageHeader } from "@/components/page-header";
 import { Duration } from "@/components/duration";
@@ -25,7 +26,7 @@ import {
 const PAGE_SIZE = 25;
 
 function complexityLabel(c: string) {
-  return c.charAt(0) + c.slice(1).toLowerCase();
+  return COMPLEXITY_LABEL[c as keyof typeof COMPLEXITY_LABEL] ?? c;
 }
 
 export function HistoryClient({

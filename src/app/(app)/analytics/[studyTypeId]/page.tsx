@@ -12,6 +12,7 @@ import { CaliperPanel } from "@/components/analytics/caliper-panel";
 import { StartStudyButton } from "@/components/analytics/start-study-button";
 import { TrendChart } from "@/components/analytics/trend-chart";
 import { ComplexityDistributionBars } from "@/components/analytics/complexity-distribution";
+import { COMPLEXITY_LABEL } from "@/features/analytics/types";
 
 const MATURITY_LABEL: Record<string, string> = {
   NONE: "No history yet",
@@ -342,7 +343,7 @@ export default async function StudyAnalyticsPage({
                       </Duration>
                     </td>
                     <td className="py-2 pr-4 text-foreground">
-                      {c.complexity}
+                      {COMPLEXITY_LABEL[c.complexity]}
                     </td>
                     <td className="py-2 pr-4 text-foreground">
                       {c.tagNames.length > 0 ? c.tagNames.join(", ") : "—"}

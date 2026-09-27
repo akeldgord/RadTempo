@@ -4,12 +4,15 @@
  * count is always shown as text (never color-only).
  */
 
-import type { ComplexityDistribution } from "@/features/analytics/types";
+import {
+  COMPLEXITY_LABEL,
+  type ComplexityDistribution,
+} from "@/features/analytics/types";
 
 const ROWS: { key: keyof ComplexityDistribution; label: string }[] = [
-  { key: "EASY", label: "Easy" },
-  { key: "TYPICAL", label: "Typical" },
-  { key: "DIFFICULT", label: "Difficult" },
+  { key: "EASY", label: COMPLEXITY_LABEL.EASY },
+  { key: "TYPICAL", label: COMPLEXITY_LABEL.TYPICAL },
+  { key: "DIFFICULT", label: COMPLEXITY_LABEL.DIFFICULT },
 ];
 
 export function ComplexityDistributionBars({
