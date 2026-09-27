@@ -2,8 +2,8 @@
 
 import { useState } from "react";
 import { Download } from "lucide-react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Section } from "../section";
 
 export function ExportSection() {
   const [downloading, setDownloading] = useState(false);
@@ -38,32 +38,29 @@ export function ExportSection() {
   }
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>Export</CardTitle>
-      </CardHeader>
-      <CardContent className="flex flex-col gap-3 pt-0">
-        <p className="text-sm text-muted">
-          Download a zip of your study types, tags, timed cases, and
-          preferences, plus a spreadsheet-friendly CSV. It never includes your
-          password, sessions, or any other secret.
+    <Section
+      title="Export"
+      description="Never includes your password, sessions, or any other secret."
+    >
+      <p className="text-sm text-muted">
+        Download a zip of your study types, tags, timed cases, and preferences,
+        plus a spreadsheet-friendly CSV.
+      </p>
+      {error && (
+        <p role="alert" className="text-sm text-danger">
+          {error}
         </p>
-        {error && (
-          <p role="alert" className="text-sm text-danger">
-            {error}
-          </p>
-        )}
-        <Button
-          type="button"
-          size="sm"
-          onClick={handleDownload}
-          disabled={downloading}
-          className="self-start"
-        >
-          <Download size={14} aria-hidden="true" />
-          {downloading ? "Preparing…" : "Download export"}
-        </Button>
-      </CardContent>
-    </Card>
+      )}
+      <Button
+        type="button"
+        size="sm"
+        onClick={handleDownload}
+        disabled={downloading}
+        className="self-start"
+      >
+        <Download size={14} aria-hidden="true" />
+        {downloading ? "Preparing…" : "Download export"}
+      </Button>
+    </Section>
   );
 }
