@@ -118,3 +118,47 @@ Subject: a personal instrument a radiologist keeps open beside PACS, often in a 
 - Neither uses all-caps eyebrow labels, cream backgrounds, terracotta, or identical rounded cards.
 
 **Chosen: A, "Reading Room"** (picked from the dashboard mockups; mockup reference: dark desktop grid of viewports with corner overlays and the amber caliper).
+
+## 5–7. Polish, accessibility, motion
+
+### Step 5 — Polish (`baseline-ui`)
+
+- **Leftover old accent tokens (globals.css):** `--primary`/`--ring` were still the pre-redesign teal/green hex values (`#0f5f4f` light / `#35b28f` dark) even though every other token had moved to the Reading Room palette — the exact bug behind the "View all" link (and every other `text-primary`/`bg-primary` element) still reading as the old default-SaaS teal. Replaced with a calm PACS-annotation blue (`#2b5c82` light / `#6fa8d8` dark), kept distinct from `--caliper` (amber), which stays reserved for the benchmark measurement only. Fixed in the `:root`, the `data-theme="dark"` override, and the `prefers-color-scheme: dark` fallback block, so every consumer (Button, links, focus rings, achievement toast icon) picked it up automatically.
+- **Achievement copy (`src/features/achievements/definitions.ts`):** titles read awkwardly once the UI appends `" for {studyName}"` — e.g. "50 of one study type for CT Abdomen/Pelvis". Reworded `study_50` ("50 reads"), `first_established_benchmark` ("Established benchmark"), `improvement_5`/`improvement_10` (dropped the redundant "this study type" now implied by the join) so the combined string reads naturally. Keys unchanged; no achievement logic touched.
+- **States:** History's single empty-state string now distinguishes "no history yet" (action: Start a case) from "filtered to nothing" (action: Clear filters) — each with one clear next action. Added `src/app/(app)/loading.tsx` + `error.tsx` (app-segment skeleton and a plain-explanation/retry boundary, no apology copy) and a heavier `analytics/[studyTypeId]/loading.tsx` skeleton for the study-detail page's charts/tables. All built from a new token-only `Skeleton` primitive (static `bg-muted-bg`, no shimmer — matches the calm tone and honors `prefers-reduced-motion` through the existing global rule).
+- **Floating timer bar at 375px:** the timer bar is `sticky`, not `fixed`, and sits in normal flow above `<main>` with an `mb-3` gutter, so it was not actually overlapping content; added `pb-[max(2rem,env(safe-area-inset-bottom))]` to `<main>` as a safe-area/spacing guard for notched phones regardless.
+- **No all-caps eyebrows:** removed the two remaining instances (Studies "Archived" toggle, Import preview table header), matching the rest of the app.
+
+### Step 6 — Accessibility (`fixing-accessibility`)
+
+- **Skip link:** added a "Skip to main content" link (visually hidden until focused) at the top of the app shell, targeting a focusable `#main-content` landmark on `<main>`, so keyboard users can bypass the sidebar/mobile-nav header on every page.
+- **Tables:** added a visually-hidden `<caption>` and/or `th scope="col"` to every data table that was missing them — History (desktop table), Study analytics "Recent cases", Admin "Pending invites" and "All users". (Import preview and the trend-data table already had captions from earlier work.)
+- **Form-control contrast:** added an `--input-border` token (`#7c8994` light, `#707d88` dark) applied to the shared `Input` component and every raw `<input>`/`<select>` field, since the existing `--border` hairline (`~1.4:1`) is far below the WCAG 1.4.11 3:1 non-text-contrast floor needed when a border is the only boundary indicator for an interactive control. `--border` itself is left soft — it's used for decorative dividers/table rules, not control boundaries.
+- **Verified already in place** from earlier Reading Room work, not changed further: global `:focus-visible` ring on every interactive element in both themes; `aria-label` on every icon-only button (delete/close/menu/minimize/expand); Radix `Dialog`/`AlertDialog` primitives for focus trapping and focus return; one `<h1>` per page (via `PageHeader`, `auth-header`, or a page-owned heading — onboarding's 4 step headings are mutually exclusive, never more than one in the DOM); `Caliper` (`role="img"` + a computed `aria-label` describing every plotted value) and `Sparkline`/trend chart (`sr-only` text summary + a full accessible data table) as text alternatives for the two custom SVG/Recharts visualizations; no color-only meaning anywhere (every colored indicator — trend arrows, excluded-from-benchmark, complexity bars — pairs color with an icon/arrow or text label).
+
+#### Contrast table (computed from `src/app/globals.css` token values, WCAG 2.1 relative-luminance formula; script in `DESIGN_NOTES.md`-adjacent scratch, reproducible from the hex values below)
+
+| Pair | Light | Dark |
+|---|---|---|
+| Body text / background | 14.42:1 PASS | 13.05:1 PASS |
+| Body text / card | 16.24:1 PASS | 11.70:1 PASS |
+| Muted text / background | 5.56:1 PASS | 6.54:1 PASS |
+| Muted text / card | 6.26:1 PASS | 5.86:1 PASS |
+| Caliper (benchmark) text / background | 5.12:1 PASS | 8.56:1 PASS |
+| Caliper (benchmark) text / card | 5.76:1 PASS | 7.67:1 PASS |
+| Primary/link text / background | 6.31:1 PASS | 6.39:1 PASS |
+| Primary/link text / card | 7.10:1 PASS | 5.73:1 PASS |
+| Primary button text / primary fill | 7.10:1 PASS | 7.45:1 PASS |
+| Danger text / background | 5.84:1 PASS | 6.55:1 PASS |
+| Danger text / card | 6.57:1 PASS | 5.87:1 PASS |
+| Danger button text / danger fill | 6.57:1 PASS | 7.49:1 PASS |
+| Success text / background | 4.72:1 PASS | 9.37:1 PASS |
+| Body text / muted hover surface | 13.28:1 PASS | 10.78:1 PASS |
+| Input/select border / card (UI boundary, 3:1 target) | 3.58:1 PASS | 3.45:1 PASS |
+
+All text pairs clear the 4.5:1 AA floor with headroom in both themes; the one UI (non-text) pair — form-control borders — clears the 3:1 floor after the `--input-border` fix above. `--border` (decorative dividers, table rules, card/viewport hairlines: ~1.4:1) intentionally does not target 3:1, since those are not the sole means of identifying an interactive component's boundary.
+
+### Step 7 — Motion (`fixing-motion-performance`)
+
+- **`src/components/caliper-marker.tsx`:** was animating the SVG `cx` attribute directly (`style={{ transition: "cx 280ms ease-out" }}`), a geometry property that forces layout/paint every frame. Changed to a compositor-only `transform: translateX(...)`: the circle is drawn at its resting `cx={toX}` and given an initial `translateX(fromX - toX)` offset, which then animates to `translateX(0)`. Confirmed the existing global `prefers-reduced-motion` rule (`transition-duration: 0.01ms !important`) still makes it instant, since it targets `transition-duration` generically rather than the `cx` property specifically.
+- **Audit of all other transitions/animations** (`grep` across `src` for `transition`, `animate-`, `@keyframes`): everything else was already compositor-safe or paint-limited-to-small-surfaces — `transition-colors` on buttons/list rows/nav links/viewport-panel hover (small, isolated elements, not full-page repaints), `transition-transform` on a chevron rotate, Radix dialog overlay `fade-in` (opacity only, no content-panel animation), and Recharts' `isAnimationActive={false}` already set on every chart. No scroll-linked motion, no unbounded rAF loops, no animated layout properties (width/height/top/left/margin/padding) found. The single post-case caliper slide remains the only orchestrated motion moment in the app; the timer itself never animates, per spec.

@@ -11,6 +11,12 @@ import { useEffect, useState } from "react";
  * rendered from either side of the server/client boundary. Slides from
  * `fromX` to `toX` on mount (≤300ms ease-out; instant under reduced motion
  * via the global transition-duration override).
+ *
+ * Animates a `transform: translateX(...)` rather than the SVG `cx`
+ * attribute — `cx` is a geometry property that forces layout/paint on
+ * every frame, while `transform` is compositor-only. The circle is drawn
+ * at its resting position (`toX`) and offset by `fromX - toX` up front,
+ * then that offset is animated back to 0.
  */
 export function CaliperMarker({
   fromX,
@@ -29,13 +35,16 @@ export function CaliperMarker({
 
   return (
     <circle
-      cx={settled ? toX : fromX}
+      cx={toX}
       cy={cy}
       r={3.5}
       fill="var(--color-viewport)"
       stroke="var(--color-caliper)"
       strokeWidth={2}
-      style={{ transition: "cx 280ms ease-out" }}
+      style={{
+        transform: `translateX(${settled ? 0 : fromX - toX}px)`,
+        transition: "transform 280ms ease-out",
+      }}
     />
   );
 }

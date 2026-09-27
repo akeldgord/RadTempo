@@ -74,7 +74,7 @@ test("timer loop: start, refresh, pause, resume, finish, classify, dashboard, de
     .getByRole("alertdialog")
     .getByRole("button", { name: "Delete" })
     .click();
-  await expect(page.getByText("No cases match these filters.")).toBeVisible();
+  await expect(page.getByText("No completed reads yet.")).toBeVisible();
 
   // Dashboard is back to the empty state.
   await page.goto("/dashboard");
