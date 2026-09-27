@@ -31,6 +31,11 @@ function readsLabel(count: number): string {
  * "baseline forming" while there isn't one yet — text carries the meaning,
  * never color alone. */
 function TrendNote({ stats }: { stats: DashboardStudyCard["stats"] }) {
+  if (stats.totalCount === 1) {
+    // SPEC: a single-case study shows its duration (bottom-left) and
+    // "Baseline started", never a comparison.
+    return <p className="text-xs text-muted">Baseline started, 1 case</p>;
+  }
   if (stats.improvement === null || stats.comparisonPaceMs === null) {
     return <p className="text-xs text-muted">baseline forming</p>;
   }
