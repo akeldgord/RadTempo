@@ -293,14 +293,14 @@ factors are computed — only how already-computed values are surfaced.
 
 ## R3 verification
 
-Final SHA: `a958810bb21dd5b89118c3a637b945bd7fe31441`.
+Final SHA: `a8f4569dbb9f4efa7804a5677a82ab216b246837`.
 
 **e2e coverage added.** `e2e/seed.ts` (new): a schema-direct seeding
 helper for history too large to build through the UI in test time —
 `seedCompletedCases`/`seedExcludedCase` insert already-COMPLETED
 `timing_entries` (with tags for excluded cases), `backdateActiveTimerStart`
 rewrites an in-flight timer's `started_at` so Finish produces a chosen
-duration without waiting in real time. `e2e/r3.spec.ts` (new, 3 tests, one
+duration without waiting in real time. `e2e/r3.spec.ts` (new, 4 tests, one
 `describe.serial`): the R1 post-case comparison graphic (seeds the exact
 `engine.test.ts` fixture that makes learned complexity factors EASY=0.5/
 TYPICAL=1/DIFFICULT=2, then in the browser backdates a 15:00 read,
@@ -310,12 +310,14 @@ above…"/"12:00"; tagging that case Interrupted asserts the comparison text
 and the graphic both disappear); R2's dashboard trend-note copy
 (only-excluded reads → "No comparable reads yet…", never "Baseline
 started"/a percentage, through several excluded reads; one eligible read →
-"Baseline started, 1 comparable read"); a 375px mobile journey (start,
-pause, resume, finish, classify, then delete from the _visible_ mobile
-`<ul>`, asserting the desktop `<table>` is `hidden`). All three run as the
-suite's already-authenticated admin (new `e2e/helpers.ts` `openAdminPage`,
-from auth.spec.ts's cached storage state) rather than a fresh invited
-user — see "CI fixes" below.
+"Baseline started, 1 comparable read"); History's delete dialog focus
+return (Escape closes it and returns focus to the exact Delete button that
+opened it); a 375px mobile journey (start, pause, resume, finish,
+classify, then delete from the _visible_ mobile `<ul>`, asserting the
+desktop `<table>` is `hidden`). All four run as the suite's
+already-authenticated admin (new `e2e/helpers.ts` `openAdminPage`, from
+auth.spec.ts's cached storage state) rather than a fresh invited user —
+see "CI fixes" below.
 
 **CI fixes (from the run on `2739ac2`).**
 
@@ -334,9 +336,10 @@ user — see "CI fixes" below.
   `completeOnboarding`'s `waitForURL(/\/onboarding/)` hang until the
   30s test timeout. `r3.spec.ts` avoids this entirely by running as the
   cached admin session (zero additional logins) instead of a new invited
-  user, since none of its three scenarios need account isolation.
-  Verified with three consecutive full local `pnpm e2e` runs: **8/8
-  passed each time.**
+  user, since none of its scenarios need account isolation.
+  Verified with three consecutive full local `pnpm e2e` runs: **9/9
+  passed each time** (8/8 before the focus-return test was added, then
+  9/9 after).
 
 **Other suites:** `pnpm lint` clean, `pnpm format:check` clean, `pnpm
 typecheck` clean, `pnpm test` (vitest unit) **70/70 passed**, `pnpm
@@ -347,32 +350,47 @@ production build, admin account with ~28 synthetic reads per study on an
 improving trend) driven with a standalone Playwright script at 375/768/
 1024/1440 in light, plus a dark spot-check at 1024. `overflow` =
 `document.documentElement.scrollWidth > clientWidth`; `console` = page
-console errors + `pageerror`s.
+console errors + `pageerror`s. A first pass found overflow on 3 pages at
+768/1024 (below); those were root-caused and fixed (see "Overflow fixes"),
+and the table below is the **re-verified, post-fix** sweep (re-run against
+`radtempo_e2e`'s admin account/build, same method, all 9 pages × 4 widths
+plus the 1024-dark spot-check).
 
-| Page              | 375 | 768          | 1024         | 1440 | 1024 dark    |
-| ----------------- | --- | ------------ | ------------ | ---- | ------------ |
-| `/` (Start)       | ok  | ok           | ok           | ok   | ok           |
-| `/dashboard`      | ok  | ok           | ok           | ok   | ok           |
-| `/analytics/[id]` | ok  | ok           | ok           | ok   | ok           |
-| `/history`        | ok  | **overflow** | ok           | ok   | ok           |
-| `/studies`        | ok  | ok           | ok           | ok   | ok           |
-| `/achievements`   | ok  | ok           | ok           | ok   | ok           |
-| `/settings`       | ok  | ok           | ok           | ok   | ok           |
-| `/settings/data`  | ok  | **overflow** | ok           | ok   | ok           |
-| `/admin`          | ok  | **overflow** | **overflow** | ok   | **overflow** |
-| `/login`          | ok  | ok           | ok           | ok   | ok           |
+| Page              | 375 | 768 | 1024 | 1440 | 1024 dark |
+| ----------------- | --- | --- | ---- | ---- | --------- |
+| `/` (Start)       | ok  | ok  | ok   | ok   | ok        |
+| `/dashboard`      | ok  | ok  | ok   | ok   | ok        |
+| `/analytics/[id]` | ok  | ok  | ok   | ok   | ok        |
+| `/history`        | ok  | ok  | ok   | ok   | ok        |
+| `/studies`        | ok  | ok  | ok   | ok   | ok        |
+| `/achievements`   | ok  | ok  | ok   | ok   | ok        |
+| `/settings`       | ok  | ok  | ok   | ok   | ok        |
+| `/settings/data`  | ok  | ok  | ok   | ok   | ok        |
+| `/admin`          | ok  | ok  | ok   | ok   | ok        |
+| `/login`          | ok  | ok  | ok   | ok   | ok        |
 
-No console/page errors on any page at any width/theme. The
-`/settings/data` import-preview state (real export zip from `/api/export`,
-uploaded through the actual file input) renders cleanly at 1024 — see
-`docs/design/verification/import-preview-1024.png`.
+Zero page overflow anywhere; no console/page errors on any page at any
+width/theme. The `/settings/data` import-preview state (real export zip
+from `/api/export`, uploaded through the actual file input) renders
+cleanly at 1024 — see `docs/design/verification/import-preview-1024.png`.
 
-**Overflow findings — recorded, not fixed** (outside this item's bounded
-scope; none involve console errors or broken function, only a few tens of
-pixels of page-level horizontal scroll at tablet/small-laptop widths from
-content that doesn't wrap/shrink below its container: History's dense
-table, an input row on Settings → Data, and Admin's invite form/tables).
-Deferred to a future pass.
+**Overflow fixes** (commit `a8f4569`). Three root causes, all minimal CSS:
+
+- `Section`'s label/content grid (`settings/section.tsx`,
+  `admin/section.tsx`) used a plain `1fr` content column. A grid track's
+  automatic minimum size is its content's min-content width unless
+  overridden, so wide unwrappable content in that column (a table's own
+  `overflow-x-auto` wrapper, a file input) could force the track — and
+  the page — wider than the viewport. Changed to `minmax(0, 1fr)`.
+- The import file input (`settings/data/import-section.tsx`) is a flex
+  item with no `min-w-0`, so it defaulted to its content's intrinsic
+  width too. Added `min-w-0 flex-1`.
+- History's and Admin's sr-only table `<caption>`s (Tailwind's
+  `.sr-only` is `position: absolute`) escaped their table's
+  `overflow-x-auto` wrapper's clipping because that wrapper wasn't a
+  positioned containing block — their static position (computed from the
+  wide, pre-scroll table) leaked into the document's `scrollWidth`. Added
+  `relative` to each wrapper.
 
 **Caliper at 1440 — found broken, fixed.** The Analytics hero panel's
 `size="lg"` Caliper (R6) scales its SVG uniformly with its container's
@@ -397,22 +415,36 @@ unless noted):
 - A modality group's `<summary>` (Browse) toggles its `<details>` open/
   closed on Enter when focused. **Pass.**
 - Once a timer is running, Tab reaches Pause/Finish. **Pass.**
-- Mobile nav (375px): Enter on the "Open menu" button opens the drawer
-  with focus moving inside it (confirmed). Escape closes it, but focus
-  lands on `<body>` instead of returning to the "Open menu" button — same
-  with a real mouse click instead of keyboard activation. **Finding, not
-  fixed** (outside this item's bounded scope): the dialog isn't wrapped in
-  Radix's own `Dialog.Trigger`, just a plain controlled `open`/`onOpenChange`
-  button, so Radix has nothing to restore focus to on close.
-- History's delete confirmation (Radix AlertDialog): opens with focus
-  inside it, Tab stays trapped inside across 6 presses, Escape closes it —
-  but focus likewise lands on `<body>` rather than returning to the row's
-  Delete button that opened it. **Same finding as above, not fixed.**
 - `prefers-reduced-motion: reduce` (`page.emulateMedia`/`newContext`
   `reducedMotion: "reduce"`): the post-case Caliper marker's
   `transition-duration` computed style reads `1e-05s` (a floating-point
   artifact of the global reduced-motion override, i.e. effectively `0s`,
   not the un-reduced ~300ms ease-out). **Pass.**
+
+**Focus return on close — found broken, fixed** (commit `a8f4569`). Radix
+only restores focus to the previously-focused element automatically when
+a dialog owns its own `Dialog.Trigger`/`AlertDialog.Trigger`. Four
+dialogs are instead driven by external `open`/`onOpenChange` state, so
+closing them (Escape, Cancel, or any other path) dropped focus to
+`<body>` instead of returning it to their trigger:
+
+- Mobile nav's drawer (a single "Open menu" button).
+- History's per-row delete confirmation (opened by either of two Delete
+  buttons — desktop table row or mobile list item — for the same row).
+- Studies' delete/archive confirmation (opened after an async
+  timing-count check decides which of the two to show).
+- Settings' delete-account confirmation.
+
+Added `src/hooks/use-dialog-focus-return.ts`: `capture()` records
+`document.activeElement` synchronously when a trigger is activated;
+`restoreFocus`, passed as the dialog Content's `onCloseAutoFocus`, returns
+focus there on close. Wired into all four. The timer discard
+`AlertDialog` already used `AlertDialogTrigger asChild` (Radix's own
+recommended pattern) and needed no change. Re-verified all five with
+Playwright (Escape, and Cancel on History's): focus now lands back on the
+exact trigger button in every case. `e2e/r3.spec.ts` adds a standing
+assertion for History's dialog (Escape → focus on the Delete button that
+opened it).
 
 Screenshots kept: `docs/design/verification/caliper-analytics-1440-
 before-fix.png`, `caliper-analytics-1440-fixed.png`,
