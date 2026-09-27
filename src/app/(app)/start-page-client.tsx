@@ -25,7 +25,12 @@ function FavoriteTile({
   return (
     <Viewport
       compact
-      className="min-w-36 flex-1 basis-36 cursor-pointer text-left transition-colors hover:bg-muted-bg disabled:cursor-not-allowed"
+      className={cn(
+        "min-w-36 flex-1 basis-36 text-left transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring",
+        disabled
+          ? "cursor-not-allowed opacity-50"
+          : "cursor-pointer hover:bg-muted-bg",
+      )}
       role="button"
       tabIndex={disabled ? -1 : 0}
       aria-disabled={disabled}

@@ -255,6 +255,16 @@ factors are computed — only how already-computed values are surfaced.
   `improvement` are computed. Verified the page's "No history yet"
   empty-state and the study-card grid remain mutually exclusive (an early
   `return` on `hasAnyCases === false`), so they can't render together.
+- **R4 — Favorite tile "disabled" look never applied.** Start's
+  `FavoriteTile` is an `<article role="button">` with `aria-disabled` and
+  keyboard handling, not a real form control, so Tailwind's
+  `disabled:*` variants (which key off the CSS `:disabled` pseudo-class)
+  never matched — a disabled favorite tile looked identical to an enabled
+  one. Replaced with explicit `disabled ? … : …` classes (matching the
+  frequent/recent rows' look: `opacity-50`, `cursor-not-allowed`, no hover
+  highlight), added an inset `focus-visible` ring, and confirmed the
+  existing click/Enter/Space guards (`if (disabled) return`) already no-op
+  correctly while disabled.
 - **R6 — Caliper legend and responsive width.** Added a compact legend
   below the graphic naming each marker ("Recent pace (adjusted)", "This
   read (adjusted)", "Previous pace") so the comparison being drawn is
