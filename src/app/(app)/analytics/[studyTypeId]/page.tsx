@@ -101,7 +101,8 @@ export default async function StudyAnalyticsPage({
       >
         {stats.recentPaceMs !== null ? (
           <CaliperPanel
-            className="mb-6 w-full max-w-xl"
+            className="mb-8 w-full"
+            size="lg"
             recentMs={stats.recentPaceMs}
             previousMs={stats.comparisonPaceMs}
           />

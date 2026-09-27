@@ -35,11 +35,11 @@ export function ComplexityDistributionBars({
               {label}
             </span>
             <div
-              className="relative h-4 flex-1 border-b border-border"
+              className="relative h-2.5 flex-1 overflow-hidden rounded-full bg-muted"
               aria-hidden="true"
             >
               <div
-                className="absolute inset-y-0 left-0 border-b-2 border-caliper"
+                className="absolute inset-y-0 left-0 rounded-full bg-caliper"
                 style={{ width: `${pct}%` }}
               />
             </div>

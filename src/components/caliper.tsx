@@ -1,9 +1,16 @@
 import { CaliperMarker } from "@/components/caliper-marker";
 
 const WIDTH = 300;
-const HEIGHT = 46;
 const INSET = 12;
-const TRACK_Y = 20;
+
+/** Vertical geometry scale: "sm" (default) is the compact size used
+ * inside data-rich viewport cards (Dashboard), where the caliper is one
+ * of several elements sharing a card. "lg" is a taller hero rendering for
+ * the Analytics benchmark panel, where the caliper is the panel's single
+ * focal graphic and should read clearly at a glance. Horizontal geometry
+ * (WIDTH/INSET, tick spacing, marker x-positions) is unaffected — the
+ * SVG already scales to its container's width via `width="100%"`. */
+const SCALE = { sm: 1, lg: 2 } as const;
 
 export interface CaliperProps {
   /** Recent pace in ms — drawn as the amber diamond marker. Required. */
@@ -21,6 +28,8 @@ export interface CaliperProps {
   /** Formats a duration in ms for the tick labels (mm:ss). */
   formatDuration: (ms: number) => string;
   className?: string;
+  /** "sm" (default, compact card use) or "lg" (hero panel use). */
+  size?: keyof typeof SCALE;
 }
 
 /**
@@ -35,14 +44,20 @@ export function Caliper({
   animateThisRead = false,
   formatDuration,
   className,
+  size = "sm",
 }: CaliperProps) {
+  const v = SCALE[size];
+  const HEIGHT = 46 * v;
+  const TRACK_Y = 20 * v;
+  const tickFontSize = Math.min(10.5 * v, 14);
+
   const values = [recentMs, previousMs, thisReadMs].filter(
-    (v): v is number => typeof v === "number",
+    (n): n is number => typeof n === "number",
   );
   const lo = Math.min(...values) * 0.82;
   const hi = Math.max(...values) * 1.14;
   const span = hi - lo || 1;
-  const x = (v: number) => INSET + ((v - lo) / span) * (WIDTH - INSET * 2);
+  const x = (val: number) => INSET + ((val - lo) / span) * (WIDTH - INSET * 2);
 
   const ticks = Array.from({ length: 21 }, (_, i) => {
     const tx = INSET + (i * (WIDTH - INSET * 2)) / 20;
@@ -53,7 +68,7 @@ export function Caliper({
         x1={tx}
         x2={tx}
         y1={TRACK_Y}
-        y2={major ? TRACK_Y + 9 : TRACK_Y + 5}
+        y2={major ? TRACK_Y + 9 * v : TRACK_Y + 5 * v}
         stroke="var(--color-overlay)"
         strokeOpacity={0.6}
       />
@@ -93,17 +108,17 @@ export function Caliper({
           <line
             x1={x(previousMs)}
             x2={x(previousMs)}
-            y1={8}
-            y2={34}
+            y1={8 * v}
+            y2={34 * v}
             stroke="var(--color-overlay)"
             strokeDasharray="2 2"
           />
           <text
             x={x(previousMs)}
-            y={44}
+            y={44 * v}
             textAnchor="middle"
             fill="var(--color-overlay)"
-            fontSize={10.5}
+            fontSize={tickFontSize}
             fontFamily="var(--font-mono)"
           >
             prev {formatDuration(previousMs)}
@@ -111,8 +126,8 @@ export function Caliper({
           <line
             x1={recentX}
             x2={x(previousMs)}
-            y1={14}
-            y2={14}
+            y1={14 * v}
+            y2={14 * v}
             stroke="var(--color-caliper)"
             strokeWidth={1}
           />
@@ -125,14 +140,14 @@ export function Caliper({
           <circle
             cx={x(thisReadMs)}
             cy={TRACK_Y}
-            r={3.5}
+            r={3.5 * v}
             fill="var(--color-viewport)"
             stroke="var(--color-caliper)"
             strokeWidth={2}
           />
         ))}
       <path
-        d={`M${recentX} 7 l6 7 l-6 7 l-6 -7z`}
+        d={`M${recentX} ${7 * v} l${6 * v} ${7 * v} l${-6 * v} ${7 * v} l${-6 * v} ${-7 * v}z`}
         fill="var(--color-caliper)"
       />
     </svg>

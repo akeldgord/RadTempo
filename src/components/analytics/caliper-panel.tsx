@@ -14,10 +14,12 @@ export function CaliperPanel({
   className,
   recentMs,
   previousMs,
+  size,
 }: {
   className?: string;
   recentMs: number;
   previousMs?: number | null;
+  size?: "sm" | "lg";
 }) {
   return (
     <Caliper
@@ -25,6 +27,7 @@ export function CaliperPanel({
       recentMs={recentMs}
       previousMs={previousMs}
       formatDuration={formatDuration}
+      size={size}
     />
   );
 }
