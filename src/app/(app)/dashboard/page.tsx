@@ -3,6 +3,11 @@ import { db } from "@/db";
 import { requireUser } from "@/server/auth-helpers";
 import { getDashboardData } from "@/features/analytics/service";
 import { formatDuration, formatPercent } from "@/features/analytics/engine";
+import {
+  maturityLabel,
+  readsCountLabel,
+  trendNoteState,
+} from "@/features/analytics/dashboard-labels";
 import type { DashboardStudyCard } from "@/features/analytics/service";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -16,41 +21,44 @@ const achievementDateFormatter = new Intl.DateTimeFormat("en-US", {
   day: "numeric",
 });
 
-const MATURITY_LABEL: Record<string, string> = {
-  NONE: "No history yet",
-  EARLY: "Early",
-  BUILDING: "Building",
-  ESTABLISHED: "Established",
-};
-
-function readsLabel(count: number): string {
-  return `${count} read${count === 1 ? "" : "s"}`;
-}
-
-/** The bottom-right overlay: an arrow + percent for a real comparison, or
- * "baseline forming" while there isn't one yet — text carries the meaning,
- * never color alone. */
+/** The bottom-right overlay: an arrow + percent for a real comparison, a
+ * calm in-progress note while a baseline is forming, or (checked first) a
+ * plain statement that there is nothing comparable yet — never a
+ * comparison or a maturity claim when `eligibleCount` is 0, no matter how
+ * many total (possibly all-excluded) reads the study has. Text carries the
+ * meaning, never color alone. See `dashboard-labels.ts` (R2). */
 function TrendNote({ stats }: { stats: DashboardStudyCard["stats"] }) {
-  if (stats.totalCount === 1) {
-    // SPEC: a single-case study shows its duration (bottom-left) and
-    // "Baseline started", never a comparison.
-    return <p className="text-xs text-muted">Baseline started, 1 case</p>;
+  const state = trendNoteState(stats);
+  switch (state.kind) {
+    case "NO_COMPARABLE":
+      return (
+        <p className="text-xs text-muted">
+          No comparable reads yet — completed reads are excluded from the
+          benchmark
+        </p>
+      );
+    case "BASELINE_STARTED":
+      return (
+        <p className="text-xs text-muted">
+          Baseline started, 1 comparable read
+        </p>
+      );
+    case "BASELINE_FORMING":
+      return <p className="text-xs text-muted">baseline forming</p>;
+    case "COMPARISON": {
+      const pct = formatPercent(state.percent);
+      return (
+        <p className="text-xs">
+          <span className="font-mono tabular-nums text-caliper">
+            {state.faster ? "↓" : "↑"} {pct}%
+          </span>{" "}
+          <span className="text-muted">
+            {state.faster ? "faster than before" : "above your previous pace"}
+          </span>
+        </p>
+      );
+    }
   }
-  if (stats.improvement === null || stats.comparisonPaceMs === null) {
-    return <p className="text-xs text-muted">baseline forming</p>;
-  }
-  const pct = formatPercent(Math.abs(stats.improvement));
-  const faster = stats.improvement >= 0;
-  return (
-    <p className="text-xs">
-      <span className="font-mono tabular-nums text-caliper">
-        {faster ? "↓" : "↑"} {pct}%
-      </span>{" "}
-      <span className="text-muted">
-        {faster ? "faster than before" : "above your previous pace"}
-      </span>
-    </p>
-  );
 }
 
 export default async function DashboardPage() {
@@ -104,9 +112,9 @@ export default async function DashboardPage() {
                   topLeft={card.studyName}
                   topRight={
                     <>
-                      {readsLabel(stats.totalCount)}
+                      {readsCountLabel(stats)}
                       <br />
-                      {MATURITY_LABEL[stats.maturity]}
+                      {maturityLabel(stats)}
                     </>
                   }
                   bottomLeft={

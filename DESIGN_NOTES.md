@@ -237,6 +237,24 @@ factors are computed — only how already-computed values are surfaced.
   graphic instead of the raw duration; "Completed in" still shows the raw
   duration. `null` for BASELINE_STARTED/BASELINE_BUILDING/EXCLUDED, where
   there is nothing to compare.
+- **R2 — Dashboard card labels conflated total and comparable reads.**
+  `TrendNote` and the card's top-right/maturity labels branched on
+  `stats.totalCount === 1`, so a study with one _excluded_ read (and zero
+  comparable reads) could read "Baseline started" or an Early/Building/
+  Established maturity it hadn't earned. Extracted the decision into pure,
+  unit-tested functions in `src/features/analytics/dashboard-labels.ts`
+  (`readsCountLabel`, `maturityLabel`, `trendNoteState`), all keyed off
+  `eligibleCount` first: `eligibleCount === 0` now always reads "No
+  comparable reads yet — completed reads are excluded from the benchmark"
+  and a maturity of "Not yet comparable", regardless of `totalCount`;
+  `eligibleCount === 1` is the real baseline-started state; a percentage is
+  only ever shown once `improvement`/`comparisonPaceMs` exist. The
+  top-right count becomes explicit ("3 reads, 1 comparable") once any of a
+  study's reads are excluded, otherwise it stays a plain "N reads". No
+  change to exclusion rules or to how `eligibleCount`/`maturity`/
+  `improvement` are computed. Verified the page's "No history yet"
+  empty-state and the study-card grid remain mutually exclusive (an early
+  `return` on `hasAnyCases === false`), so they can't render together.
 - **R6 — Caliper legend and responsive width.** Added a compact legend
   below the graphic naming each marker ("Recent pace (adjusted)", "This
   read (adjusted)", "Previous pace") so the comparison being drawn is
