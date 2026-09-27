@@ -24,7 +24,8 @@ function FavoriteTile({
 }) {
   return (
     <Viewport
-      className="cursor-pointer text-left transition-colors hover:bg-muted-bg disabled:cursor-not-allowed"
+      compact
+      className="min-w-36 flex-1 basis-36 cursor-pointer text-left transition-colors hover:bg-muted-bg disabled:cursor-not-allowed"
       role="button"
       tabIndex={disabled ? -1 : 0}
       aria-disabled={disabled}
@@ -36,9 +37,7 @@ function FavoriteTile({
           onStart(study.id);
         }
       }}
-      topLeft={
-        <span className="text-md font-semibold leading-snug">{study.name}</span>
-      }
+      topLeft={study.name}
       bottomRight={
         <span className="text-xs text-muted">{study.shortName}</span>
       }
@@ -172,7 +171,7 @@ export function StartPageClient({ sections }: { sections: HomeSections }) {
           {searchResults.length === 0 ? (
             <p className="text-sm text-muted">No matches.</p>
           ) : (
-            <ViewportGrid>
+            <ViewportGrid fitContent>
               {searchResults.map((s) => (
                 <FavoriteTile
                   key={s.id}
@@ -191,7 +190,7 @@ export function StartPageClient({ sections }: { sections: HomeSections }) {
               <h2 className="mb-3 text-sm font-semibold text-foreground">
                 Favorites
               </h2>
-              <ViewportGrid>
+              <ViewportGrid fitContent>
                 {sections.favorites.map((s) => (
                   <FavoriteTile
                     key={s.id}

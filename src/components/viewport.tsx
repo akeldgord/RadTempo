@@ -7,12 +7,25 @@ import { cn } from "@/lib/utils";
  */
 export function ViewportGrid({
   className,
+  /** When true, lays out children with `flex-wrap` instead of the fixed
+   * 1/2/3-column grid, and each child is expected to carry its own
+   * `flex-1` sizing (see Start's `FavoriteTile`). Flexbox distributes
+   * leftover space among the items already on a row, so a row that
+   * doesn't fill evenly never exposes the container's border-colored
+   * background as an empty cell — unlike a fixed grid, where an item
+   * count that doesn't divide evenly leaves a bare gutter-colored gap.
+   * Used for the Start page's Favorites/search-results tiles, whose
+   * count varies. */
+  fitContent = false,
   ...props
-}: React.ComponentProps<"div">) {
+}: React.ComponentProps<"div"> & { fitContent?: boolean }) {
   return (
     <div
       className={cn(
-        "grid grid-cols-1 gap-px overflow-hidden rounded-lg border-2 border-border bg-border sm:grid-cols-2 lg:grid-cols-3",
+        "gap-px overflow-hidden rounded-lg border-2 border-border bg-border",
+        fitContent
+          ? "flex flex-wrap"
+          : "grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3",
         className,
       )}
       {...props}
@@ -31,6 +44,10 @@ export interface ViewportProps extends React.ComponentProps<"article"> {
   bottomRight?: React.ReactNode;
   /** The center graphic, e.g. a Caliper. */
   children?: React.ReactNode;
+  /** Compact sizing for simple one-click tiles with no center graphic
+   * (e.g. Start's favorite tiles) — much shorter than the data-rich
+   * dashboard/analytics viewports, which need room for a Caliper. */
+  compact?: boolean;
 }
 
 /** A single viewport panel with DICOM-style corner overlays. */
@@ -41,18 +58,27 @@ export function Viewport({
   bottomRight,
   children,
   className,
+  compact = false,
   ...props
 }: ViewportProps) {
   return (
     <article
       className={cn(
-        "relative flex min-h-56 flex-col justify-between gap-3 bg-card p-4 transition-colors sm:p-5",
+        "relative flex flex-col justify-between bg-card transition-colors",
+        compact
+          ? "min-h-16 gap-1.5 p-3 sm:min-h-24 sm:p-4"
+          : "min-h-56 gap-3 p-4 sm:p-5",
         className,
       )}
       {...props}
     >
       <div className="flex items-start justify-between gap-3">
-        <div className="max-w-[70%] text-sm font-semibold leading-snug text-foreground">
+        <div
+          className={cn(
+            "max-w-[70%] font-semibold leading-snug text-foreground",
+            compact ? "line-clamp-2 text-sm" : "text-sm",
+          )}
+        >
           {topLeft}
         </div>
         {topRight && (
