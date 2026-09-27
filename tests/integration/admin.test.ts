@@ -8,7 +8,7 @@ import {
   vi,
 } from "vitest";
 import { sql as rawSql, db } from "@/db";
-import { user as userTable } from "@/db/schema";
+import { session as sessionTable, user as userTable } from "@/db/schema";
 import { eq } from "drizzle-orm";
 import { auth } from "@/lib/auth";
 import { runWithRegistrationAllowed } from "@/server/registration-gate";
@@ -312,6 +312,36 @@ describe("backup and restore", () => {
 
     const settings = await getInstanceSettings();
     expect(settings.maintenanceMode).toBe(false);
+  });
+
+  it("does not revive sessions captured in the backup", async () => {
+    await signUp("session-admin@example.com");
+    await signInAs("session-admin@example.com");
+    const sessionHeaders = currentHeaders;
+    expect(
+      await auth.api.getSession({ headers: sessionHeaders }),
+    ).not.toBeNull();
+
+    const passphrase = "correct-horse-battery-2";
+    const encrypted = await createBackup(passphrase);
+
+    // Revoke every session after the backup was taken.
+    await db.delete(sessionTable);
+    expect(await auth.api.getSession({ headers: sessionHeaders })).toBeNull();
+
+    await performRestore(passphrase, encrypted);
+
+    // The backup's session rows must not come back: nobody is signed in.
+    expect(await db.select().from(sessionTable)).toHaveLength(0);
+    expect(await auth.api.getSession({ headers: sessionHeaders })).toBeNull();
+    // Users themselves are restored and can sign in again.
+    const rows = await db.select().from(userTable);
+    expect(rows.map((u) => u.email)).toEqual(["session-admin@example.com"]);
+    const signedIn = await auth.api.signInEmail({
+      body: { email: "session-admin@example.com", password: "password123" },
+    });
+    expect(signedIn.user.email).toBe("session-admin@example.com");
+    expect((await getInstanceSettings()).maintenanceMode).toBe(false);
   });
 
   it("fails with the wrong passphrase without touching the database", async () => {
