@@ -4,38 +4,43 @@ import { requireUser } from "@/server/auth-helpers";
 import { getDashboardData } from "@/features/analytics/service";
 import { formatDuration, formatPercent } from "@/features/analytics/engine";
 import type { DashboardStudyCard } from "@/features/analytics/service";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { StartStudyButton } from "@/components/analytics/start-study-button";
-import { Sparkline } from "@/components/analytics/sparkline";
+import { PageHeader } from "@/components/page-header";
+import { Viewport, ViewportGrid } from "@/components/viewport";
+import { Caliper } from "@/components/caliper";
+import { Duration } from "@/components/duration";
 
 const MATURITY_LABEL: Record<string, string> = {
   NONE: "No history yet",
-  EARLY: "Benchmark early",
-  BUILDING: "Benchmark building",
-  ESTABLISHED: "Benchmark established",
+  EARLY: "Early",
+  BUILDING: "Building",
+  ESTABLISHED: "Established",
 };
 
-function studyCardLine(card: DashboardStudyCard): string {
-  const { stats } = card;
-  if (stats.eligibleCount === 0) {
-    return `${stats.totalCount} case${stats.totalCount === 1 ? "" : "s"} so far · not yet included in your benchmark`;
-  }
-  if (stats.eligibleCount === 1 && stats.recentPaceMs !== null) {
-    return `Baseline started · ${formatDuration(stats.recentPaceMs)} · 1 case`;
-  }
-  if (stats.recentPaceMs === null) {
-    return `${stats.totalCount} case${stats.totalCount === 1 ? "" : "s"} · ${MATURITY_LABEL[stats.maturity]}`;
-  }
-  if (stats.comparisonPaceMs === null || stats.improvement === null) {
-    return `Recent ${formatDuration(stats.recentPaceMs)} · ${stats.totalCount} timed reads · ${MATURITY_LABEL[stats.maturity]}`;
+function readsLabel(count: number): string {
+  return `${count} read${count === 1 ? "" : "s"}`;
+}
+
+/** The bottom-right overlay: an arrow + percent for a real comparison, or
+ * "baseline forming" while there isn't one yet — text carries the meaning,
+ * never color alone. */
+function TrendNote({ stats }: { stats: DashboardStudyCard["stats"] }) {
+  if (stats.improvement === null || stats.comparisonPaceMs === null) {
+    return <p className="text-xs text-muted">baseline forming</p>;
   }
   const pct = formatPercent(Math.abs(stats.improvement));
-  const trendText =
-    stats.improvement >= 0
-      ? `↓ ${pct}% faster`
-      : `↑ ${pct}% above your previous pace`;
-  return `Recent ${formatDuration(stats.recentPaceMs)} · Previous ${formatDuration(stats.comparisonPaceMs)} · ${trendText} · ${stats.totalCount} timed reads · ${MATURITY_LABEL[stats.maturity]}`;
+  const faster = stats.improvement >= 0;
+  return (
+    <p className="text-xs">
+      <span className="font-mono tabular-nums text-caliper">
+        {faster ? "↓" : "↑"} {pct}%
+      </span>{" "}
+      <span className="text-muted">
+        {faster ? "faster than before" : "above your previous pace"}
+      </span>
+    </p>
+  );
 }
 
 export default async function DashboardPage() {
@@ -45,7 +50,10 @@ export default async function DashboardPage() {
   if (!data.hasAnyCases) {
     return (
       <div className="flex flex-col gap-4">
-        <h1 className="text-2xl font-semibold text-foreground">Dashboard</h1>
+        <PageHeader
+          title="Dashboard"
+          subtitle="Each study against your own prior pace."
+        />
         <Card>
           <CardContent className="flex flex-col gap-3 pt-6">
             <p className="text-sm text-muted">
@@ -65,102 +73,102 @@ export default async function DashboardPage() {
 
   return (
     <div className="flex flex-col gap-8">
-      <div>
-        <h1 className="text-2xl font-semibold text-foreground">Dashboard</h1>
-        <p className="text-sm text-muted">
-          Your own history, measured against your own prior self — never
-          compared to other radiologists.
-        </p>
-      </div>
+      <PageHeader
+        title="Dashboard"
+        subtitle="Each study against your own prior pace."
+        aside="Last 10 reads compared with the 20 before them"
+      />
 
       <section aria-label="Study performance">
-        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-          {data.studyCards.map((card) => (
-            <Card key={card.studyTypeId}>
-              <CardHeader>
-                <CardTitle className="text-base">
-                  <Link
-                    href={`/analytics/${card.studyTypeId}`}
-                    className="hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                  >
-                    {card.studyName}
-                  </Link>
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="flex flex-col gap-3">
-                <p className="text-sm text-muted">{studyCardLine(card)}</p>
-                {card.sparkline.length >= 2 && (
-                  <Sparkline points={card.sparkline} />
-                )}
-                <div className="flex flex-wrap items-center gap-2 pt-1">
-                  <Button asChild variant="ghost" size="sm">
-                    <Link href={`/analytics/${card.studyTypeId}`}>
-                      View details
-                    </Link>
-                  </Button>
-                  <StartStudyButton
-                    studyTypeId={card.studyTypeId}
-                    size="sm"
-                    variant="ghost"
-                  >
-                    Start this study
-                  </StartStudyButton>
-                </div>
-              </CardContent>
-            </Card>
-          ))}
+        <ViewportGrid>
+          {data.studyCards.map((card) => {
+            const { stats } = card;
+            return (
+              <Link
+                key={card.studyTypeId}
+                href={`/analytics/${card.studyTypeId}`}
+                className="group focus-visible:outline-none"
+              >
+                <Viewport
+                  className="h-full transition-colors group-hover:bg-muted-bg group-focus-visible:bg-muted-bg group-focus-visible:ring-2 group-focus-visible:ring-inset group-focus-visible:ring-ring"
+                  topLeft={card.studyName}
+                  topRight={
+                    <>
+                      {readsLabel(stats.totalCount)}
+                      <br />
+                      {MATURITY_LABEL[stats.maturity]}
+                    </>
+                  }
+                  bottomLeft={
+                    stats.recentPaceMs !== null ? (
+                      <>
+                        <Duration className="text-3xl font-medium">
+                          {formatDuration(stats.recentPaceMs)}
+                        </Duration>
+                        <p className="mt-1 text-2xs text-muted">recent pace</p>
+                      </>
+                    ) : (
+                      <p className="text-sm text-muted">
+                        {stats.totalCount} case
+                        {stats.totalCount === 1 ? "" : "s"} so far
+                      </p>
+                    )
+                  }
+                  bottomRight={<TrendNote stats={stats} />}
+                >
+                  {stats.recentPaceMs !== null && (
+                    <Caliper
+                      className="w-full"
+                      recentMs={stats.recentPaceMs}
+                      previousMs={stats.comparisonPaceMs}
+                      formatDuration={formatDuration}
+                    />
+                  )}
+                </Viewport>
+              </Link>
+            );
+          })}
+        </ViewportGrid>
+        <div className="mt-3">
+          <Button asChild variant="secondary" size="sm">
+            <Link href="/">Start a case</Link>
+          </Button>
         </div>
       </section>
 
-      <section aria-label="Overview">
-        <h2 className="mb-3 text-sm font-semibold text-foreground">Overview</h2>
-        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-          <Card>
-            <CardContent className="flex flex-col gap-1 pt-6">
-              <p className="text-xs uppercase tracking-wide text-muted">
-                Completed cases
-              </p>
-              <p className="text-2xl font-semibold text-foreground">
-                {overview.completedCases}
-              </p>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardContent className="flex flex-col gap-1 pt-6">
-              <p className="text-xs uppercase tracking-wide text-muted">
-                Active reading time
-              </p>
-              <p className="text-2xl font-semibold text-foreground">
-                {formatDuration(overview.totalActiveMs)}
-              </p>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardContent className="flex flex-col gap-1 pt-6">
-              <p className="text-xs uppercase tracking-wide text-muted">
-                Timed cases/hour
-              </p>
-              <p className="text-2xl font-semibold text-foreground">
-                {overview.timedCasesPerHour !== null
-                  ? overview.timedCasesPerHour.toFixed(1)
-                  : "—"}
-              </p>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardContent className="flex flex-col gap-1 pt-6">
-              <p className="text-xs uppercase tracking-wide text-muted">
-                Reading-day streak
-              </p>
-              <p className="text-2xl font-semibold text-foreground">
-                {overview.readingDayStreak.current}
-              </p>
-              <p className="text-xs text-muted">
-                Longest: {overview.readingDayStreak.longest} day
-                {overview.readingDayStreak.longest === 1 ? "" : "s"}
-              </p>
-            </CardContent>
-          </Card>
+      <section
+        aria-label="Overview"
+        className="flex flex-wrap gap-x-12 gap-y-4 border-t border-border pt-5"
+      >
+        <div>
+          <Duration className="block text-lg font-medium">
+            {overview.completedCases}
+          </Duration>
+          <p className="text-xs text-muted">completed reads</p>
+        </div>
+        <div>
+          <Duration className="block text-lg font-medium">
+            {formatDuration(overview.totalActiveMs)}
+          </Duration>
+          <p className="text-xs text-muted">active reading time</p>
+        </div>
+        <div>
+          <Duration className="block text-lg font-medium">
+            {overview.timedCasesPerHour !== null
+              ? overview.timedCasesPerHour.toFixed(1)
+              : "—"}
+          </Duration>
+          <p className="text-xs text-muted">timed reads per hour</p>
+        </div>
+        <div>
+          <Duration className="block text-lg font-medium">
+            {overview.readingDayStreak.current} day
+            {overview.readingDayStreak.current === 1 ? "" : "s"}
+          </Duration>
+          <p className="text-xs text-muted">
+            reading streak · longest {overview.readingDayStreak.longest} day
+            {overview.readingDayStreak.longest === 1 ? "" : "s"}
+          </p>
         </div>
       </section>
 
@@ -168,13 +176,11 @@ export default async function DashboardPage() {
         <h2 className="mb-3 text-sm font-semibold text-foreground">
           Personal records
         </h2>
-        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+        <div className="grid gap-3 sm:grid-cols-2">
           <Card>
             <CardContent className="flex flex-col gap-1 pt-6">
-              <p className="text-xs uppercase tracking-wide text-muted">
-                Fastest comparable read
-              </p>
-              <p className="text-lg font-semibold text-foreground">
+              <p className="text-xs text-muted">Fastest comparable read</p>
+              <p className="text-md font-semibold text-foreground">
                 {data.personalRecords.fastestEligibleRead
                   ? formatDuration(
                       data.personalRecords.fastestEligibleRead.adjustedMs,
@@ -185,10 +191,10 @@ export default async function DashboardPage() {
           </Card>
           <Card>
             <CardContent className="flex flex-col gap-1 pt-6">
-              <p className="text-xs uppercase tracking-wide text-muted">
+              <p className="text-xs text-muted">
                 Largest sustained improvement
               </p>
-              <p className="text-lg font-semibold text-foreground">
+              <p className="text-md font-semibold text-foreground">
                 {data.personalRecords.largestSustainedImprovement
                   ? `${formatPercent(
                       data.personalRecords.largestSustainedImprovement
