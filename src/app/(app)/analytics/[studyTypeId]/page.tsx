@@ -35,7 +35,7 @@ function parseDate(value?: string): Date | undefined {
 }
 
 const fieldClass =
-  "h-9 rounded-md border border-border bg-card px-2 text-sm text-foreground";
+  "h-9 rounded-md border border-input-border bg-card px-2 text-sm text-foreground";
 
 export default async function StudyAnalyticsPage({
   params,
@@ -293,6 +293,9 @@ export default async function StudyAnalyticsPage({
         ) : (
           <div className="overflow-x-auto rounded-md border border-border">
             <table className="w-full text-left text-sm">
+              <caption className="sr-only">
+                Recent cases for {data.studyName}
+              </caption>
               <thead>
                 <tr className="border-b border-border text-muted">
                   <th scope="col" className="py-2 pl-3 pr-4 font-medium">

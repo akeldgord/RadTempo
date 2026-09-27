@@ -75,7 +75,7 @@ function CreateUserForm() {
           id="new-user-role"
           name="role"
           defaultValue="USER"
-          className="h-10 rounded-md border border-border bg-card px-3 text-sm text-foreground"
+          className="h-10 rounded-md border border-input-border bg-card px-3 text-sm text-foreground"
         >
           <option value="USER">User</option>
           <option value="ADMIN">Admin</option>
@@ -282,6 +282,7 @@ export function UsersSection({
           </h3>
           <div className="overflow-x-auto">
             <table className="w-full text-left text-sm">
+              <caption className="sr-only">Pending invites</caption>
               <thead>
                 <tr className="border-b border-border text-muted">
                   <th scope="col" className="py-2 pr-4 font-medium">
@@ -319,6 +320,7 @@ export function UsersSection({
         {/* Desktop / tablet: table, scrolls within its own container. */}
         <div className="hidden overflow-x-auto sm:block">
           <table className="w-full text-left text-sm">
+            <caption className="sr-only">All users</caption>
             <thead>
               <tr className="border-b border-border text-muted">
                 <th scope="col" className="py-2 pr-4 font-medium">

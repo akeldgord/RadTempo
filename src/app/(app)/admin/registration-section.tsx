@@ -29,7 +29,7 @@ export function RegistrationSection({
             id="registration-mode"
             name="registrationMode"
             defaultValue={registrationMode}
-            className="h-10 rounded-md border border-border bg-card px-3 text-sm text-foreground"
+            className="h-10 rounded-md border border-input-border bg-card px-3 text-sm text-foreground"
           >
             <option value="invite_only">Invite only</option>
             <option value="open">Open</option>

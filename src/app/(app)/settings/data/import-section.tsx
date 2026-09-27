@@ -150,7 +150,7 @@ export function ImportSection() {
           <table className="w-full text-sm">
             <caption className="sr-only">Import preview</caption>
             <thead>
-              <tr className="text-left text-xs uppercase tracking-wide text-muted">
+              <tr className="text-left text-xs font-medium text-muted">
                 <th scope="col" className="py-1">
                   Item
                 </th>

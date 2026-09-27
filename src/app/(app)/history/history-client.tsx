@@ -162,7 +162,7 @@ export function HistoryClient({
             type="date"
             value={filters.from}
             onChange={(e) => updateFilter("from", e.target.value)}
-            className="h-9 rounded-md border border-border bg-card px-2 text-sm text-foreground"
+            className="h-9 rounded-md border border-input-border bg-card px-2 text-sm text-foreground"
           />
         </div>
         <div className="flex flex-col gap-1.5">
@@ -174,7 +174,7 @@ export function HistoryClient({
             type="date"
             value={filters.to}
             onChange={(e) => updateFilter("to", e.target.value)}
-            className="h-9 rounded-md border border-border bg-card px-2 text-sm text-foreground"
+            className="h-9 rounded-md border border-input-border bg-card px-2 text-sm text-foreground"
           />
         </div>
       </div>
@@ -211,15 +211,28 @@ export function HistoryClient({
           {/* Desktop / tablet: dense table, scrolls within its own container. */}
           <div className="hidden overflow-x-auto rounded-md border border-border sm:block">
             <table className="w-full text-sm">
+              <caption className="sr-only">Your completed reads</caption>
               <thead className="border-b border-border bg-muted-bg text-left text-xs font-medium text-muted">
                 <tr>
-                  <th className="px-3 py-2">Date</th>
-                  <th className="px-3 py-2">Study</th>
-                  <th className="px-3 py-2">Duration</th>
-                  <th className="px-3 py-2">Complexity</th>
-                  <th className="px-3 py-2">Tags</th>
-                  <th className="px-3 py-2">Included?</th>
-                  <th className="px-3 py-2 text-right">
+                  <th scope="col" className="px-3 py-2">
+                    Date
+                  </th>
+                  <th scope="col" className="px-3 py-2">
+                    Study
+                  </th>
+                  <th scope="col" className="px-3 py-2">
+                    Duration
+                  </th>
+                  <th scope="col" className="px-3 py-2">
+                    Complexity
+                  </th>
+                  <th scope="col" className="px-3 py-2">
+                    Tags
+                  </th>
+                  <th scope="col" className="px-3 py-2">
+                    Included?
+                  </th>
+                  <th scope="col" className="px-3 py-2 text-right">
                     <span className="sr-only">Actions</span>
                   </th>
                 </tr>
@@ -392,7 +405,7 @@ function FilterSelect({
         id={id}
         value={value}
         onChange={(e) => onChange(e.target.value)}
-        className="h-9 w-full min-w-0 rounded-md border border-border bg-card px-2 text-sm text-foreground sm:w-36"
+        className="h-9 w-full min-w-0 rounded-md border border-input-border bg-card px-2 text-sm text-foreground sm:w-36"
       >
         {options.map((o) => (
           <option key={o.value} value={o.value}>

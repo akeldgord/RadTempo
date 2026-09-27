@@ -26,6 +26,10 @@
   --card: var(--viewport);
   --card-foreground: var(--bone);
   --border: var(--gutter);
+  /* Stronger border for form controls (inputs/selects), where the border
+     is the only boundary indicator — meets the 3:1 non-text contrast
+     target; --border stays soft for decorative dividers/hairlines. */
+  --input-border: #7c8994;
   --muted: var(--overlay);
   --muted-bg: #e4e9ed;
   /* Interactive accent (links, primary actions, focus). Distinct from
@@ -81,6 +85,7 @@
   --color-card: var(--card);
   --color-card-foreground: var(--card-foreground);
   --color-border: var(--border);
+  --color-input-border: var(--input-border);
   --color-muted: var(--muted);
   --color-muted-bg: var(--muted-bg);
   --color-primary: var(--primary);
@@ -143,6 +148,7 @@
   --card: var(--viewport);
   --card-foreground: var(--bone);
   --border: var(--gutter);
+  --input-border: #707d88;
   --muted: var(--overlay);
   --muted-bg: #26303a;
   --primary: #6fa8d8;
@@ -171,6 +177,7 @@
     --card: var(--viewport);
     --card-foreground: var(--bone);
     --border: var(--gutter);
+    --input-border: #707d88;
     --muted: var(--overlay);
     --muted-bg: #26303a;
     --primary: #6fa8d8;

@@ -372,7 +372,7 @@ export function StudiesClient({
             type="button"
             onClick={() => setArchivedOpen((v) => !v)}
             aria-expanded={archivedOpen}
-            className="mb-2 flex items-center gap-1 text-xs font-semibold uppercase tracking-wide text-muted hover:text-foreground"
+            className="mb-2 flex items-center gap-1 text-sm font-semibold text-muted hover:text-foreground"
           >
             <ChevronDown
               size={14}

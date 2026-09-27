@@ -51,6 +51,12 @@ export default async function AppLayout({
         initialShortcuts={preferences.keyboardShortcuts}
         favorites={homeSections.favorites}
       >
+        <a
+          href="#main-content"
+          className="sr-only rounded-md bg-card px-4 py-2 text-sm font-medium text-foreground focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+        >
+          Skip to main content
+        </a>
         <div className="flex min-h-screen min-w-0">
           <Sidebar isAdmin={user.role === "ADMIN"} className="hidden md:flex" />
           <div className="flex min-w-0 flex-1 flex-col">
@@ -69,7 +75,11 @@ export default async function AppLayout({
               </div>
             )}
             <TimerBar />
-            <main className="min-w-0 flex-1 bg-background px-4 pb-[max(2rem,env(safe-area-inset-bottom))] pt-8 sm:px-6">
+            <main
+              id="main-content"
+              tabIndex={-1}
+              className="min-w-0 flex-1 bg-background px-4 pb-[max(2rem,env(safe-area-inset-bottom))] pt-8 sm:px-6 focus:outline-none"
+            >
               {children}
             </main>
           </div>
