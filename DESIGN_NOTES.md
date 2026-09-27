@@ -265,6 +265,15 @@ factors are computed — only how already-computed values are surfaced.
   highlight), added an inset `focus-visible` ring, and confirmed the
   existing click/Enter/Space guards (`if (disabled) return`) already no-op
   correctly while disabled.
+- **R5 — Viewport title width and truncation.** `Viewport`'s title
+  (`topLeft`) capped itself at `max-w-[70%]` even when there was no
+  `topRight` overlay to share the row with (Start's `FavoriteTile` never
+  passes one), needlessly narrowing it; the cap now only applies when
+  `topRight` is present, otherwise the title gets the full row. Also
+  removed `compact`'s `line-clamp-2`, which truncated common favorite
+  names ("CT Abdomen/Pelvis with contrast", "MRI Abdomen with & without
+  contrast") at narrow widths — titles now wrap onto as many lines as
+  needed instead, so every accessible name stays fully visible.
 - **R6 — Caliper legend and responsive width.** Added a compact legend
   below the graphic naming each marker ("Recent pace (adjusted)", "This
   read (adjusted)", "Previous pace") so the comparison being drawn is

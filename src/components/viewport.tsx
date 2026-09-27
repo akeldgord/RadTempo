@@ -75,8 +75,16 @@ export function Viewport({
       <div className="flex items-start justify-between gap-3">
         <div
           className={cn(
-            "max-w-[70%] font-semibold leading-snug text-foreground",
-            compact ? "line-clamp-2 text-sm" : "text-sm",
+            "font-semibold leading-snug text-foreground",
+            // Only cap the title's width when there's a topRight overlay to
+            // share the row with — otherwise let it use the full width.
+            // Names are allowed to wrap onto multiple lines (never
+            // line-clamped/truncated): common favorites like "CT
+            // Abdomen/Pelvis with contrast" or "MRI Abdomen with & without
+            // contrast" need more than two lines at narrow widths, and every
+            // accessible name must stay fully visible, not truncated.
+            topRight ? "max-w-[70%]" : "max-w-full",
+            "text-sm",
           )}
         >
           {topLeft}
