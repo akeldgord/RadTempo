@@ -231,7 +231,7 @@ export function OnboardingFlow({
               <div className="max-h-72 overflow-y-auto rounded-md border border-border p-3">
                 {grouped.map((group) => (
                   <div key={group.modality} className="mb-3">
-                    <h2 className="mb-1 text-xs font-semibold uppercase tracking-wide text-muted">
+                    <h2 className="mb-1 text-xs font-semibold text-muted">
                       {group.modality}
                     </h2>
                     {group.regions.map((region) => (
