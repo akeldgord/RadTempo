@@ -73,6 +73,9 @@ jobs:
         run: pnpm build
         env:
           AUTH_SECRET: dummy-ci-secret-not-for-production-use-only
+          # Required at module load; the build never connects (same
+          # placeholder as the Dockerfile's builder stage).
+          DATABASE_URL: postgres://placeholder:placeholder@localhost:5432/placeholder
 
   docker-build:
     name: Docker image build
