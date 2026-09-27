@@ -51,9 +51,9 @@ export default async function AppLayout({
         initialShortcuts={preferences.keyboardShortcuts}
         favorites={homeSections.favorites}
       >
-        <div className="flex min-h-screen">
+        <div className="flex min-h-screen min-w-0">
           <Sidebar isAdmin={user.role === "ADMIN"} className="hidden md:flex" />
-          <div className="flex flex-1 flex-col">
+          <div className="flex min-w-0 flex-1 flex-col">
             <MobileNav isAdmin={user.role === "ADMIN"} />
             <header className="hidden h-14 items-center justify-end gap-4 border-b border-border bg-card px-6 md:flex">
               <span className="text-sm text-muted">{user.email}</span>
@@ -69,7 +69,7 @@ export default async function AppLayout({
               </div>
             )}
             <TimerBar />
-            <main className="flex-1 bg-background px-4 py-8 sm:px-6">
+            <main className="min-w-0 flex-1 bg-background px-4 py-8 sm:px-6">
               {children}
             </main>
           </div>

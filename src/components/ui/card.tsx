@@ -1,10 +1,14 @@
 import { cn } from "@/lib/utils";
 
+/** Kept for pages not yet migrated to the viewport look (see Viewport in
+ * src/components/viewport.tsx) — restyled here so nothing looks broken
+ * mid-migration: a single hairline border and no shadow, matching the
+ * Reading Room surface treatment. */
 export function Card({ className, ...props }: React.ComponentProps<"div">) {
   return (
     <div
       className={cn(
-        "rounded-lg border border-border bg-card text-card-foreground shadow-sm",
+        "rounded-lg border border-border bg-card text-card-foreground",
         className,
       )}
       {...props}
@@ -24,7 +28,7 @@ export function CardHeader({
 export function CardTitle({ className, ...props }: React.ComponentProps<"h2">) {
   return (
     <h2
-      className={cn("text-lg font-semibold leading-none", className)}
+      className={cn("text-md font-semibold leading-tight", className)}
       {...props}
     />
   );

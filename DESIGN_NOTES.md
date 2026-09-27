@@ -76,6 +76,7 @@ Plus dark theme at desktop only: `dashboard-desktop-dark`, `start-desktop-dark`.
 Subject: a personal instrument a radiologist keeps open beside PACS, often in a dim reading room, to answer one question: am I getting faster at the exams I actually read? Both directions keep the spec's calm, non-competitive tone and ship light + dark via tokens.
 
 ### A. "Reading Room": the dashboard as a hanging protocol
+
 - **Idea:** borrow the radiologist's own screen. Studies sit in a viewport grid separated by thin gutters (like a PACS hanging protocol), with facts in the four corners of each viewport the way DICOM overlays annotate an image. No cards.
 - **Palette (dark-first, light equally supported):**
   graphite `#1B2127` (film base) · viewport `#222A31` · gutter `#34404A` · bone `#E3E7EA` (text) · overlay grey `#9AA6B0` (secondary) · caliper amber `#E2B65B` (the benchmark only; `#8A5D00` in light mode for AA).
@@ -95,6 +96,7 @@ Subject: a personal instrument a radiologist keeps open beside PACS, often in a 
 - **Motion:** one moment only. After Finish, the caliper marker slides from your recent pace to this read (≈300ms ease-out); instant under reduced motion. The timer never animates.
 
 ### B. "Tempo": pace as a quiet metronome track
+
 - **Idea:** each study is a horizontal track, like a line in a score. Recent reads sit on it as small marks drifting left as you get faster; your benchmark is written as a tempo marking beside it. Rows, not boxes.
 - **Palette (light-first, dark equally supported):**
   cold daylight `#F2F5F7` · paper `#FFFFFF` · ink `#15212B` · slate `#52606B` (secondary) · track `#D5DDE3` · cobalt `#2450B8` (your pace only; `#8FB0FF` in dark mode). Dark mode = slate `#18212A` background.
@@ -110,6 +112,9 @@ Subject: a personal instrument a radiologist keeps open beside PACS, often in a 
 - **Motion:** one moment only. After Finish, the new read drops onto its track; instant under reduced motion. The timer never animates.
 
 ### Self-check against generic defaults
+
 - A risked "near-black + one bright accent". Revised to a blue-graphite (not #111), a muted amber used only for measurement, and a light mode of equal standing; the identity comes from the viewport-and-corner layout, not the accent.
 - B risked the SaaS stat-card kit. Revised to rows and tracks with no card chrome, and a single cobalt reserved for "your pace".
 - Neither uses all-caps eyebrow labels, cream backgrounds, terracotta, or identical rounded cards.
+
+**Chosen: A, "Reading Room"** (picked from the dashboard mockups; mockup reference: dark desktop grid of viewports with corner overlays and the amber caliper).

@@ -1,18 +1,75 @@
 @import "tailwindcss";
+@import "@fontsource-variable/atkinson-hyperlegible-next";
+@import "@fontsource-variable/atkinson-hyperlegible-mono";
+
+/*
+ * RadTempo design tokens — "Reading Room" direction.
+ *
+ * The dashboard borrows the radiologist's own hanging-protocol screen:
+ * studies sit in a viewport grid with thin gutters, facts in the corners
+ * like DICOM overlays, and a benchmark drawn as a caliper. Dark mode is a
+ * dim reading room (film/viewport/gutter); light mode is a light box
+ * (bright, neutral, still calm). See DESIGN_NOTES.md, direction A.
+ */
 
 :root {
-  --background: #f8fafc;
-  --foreground: #0f172a;
-  --card: #ffffff;
-  --card-foreground: #0f172a;
-  --border: #e2e8f0;
-  --muted: #64748b;
-  --muted-bg: #f1f5f9;
+  /* Light mode — "light box" */
+  --film: #eef2f5;
+  --viewport: #ffffff;
+  --gutter: #d3dbe2;
+  --bone: #1b2127;
+  --overlay: #55626d;
+  --caliper: #8a5d00;
+
+  --background: var(--film);
+  --foreground: var(--bone);
+  --card: var(--viewport);
+  --card-foreground: var(--bone);
+  --border: var(--gutter);
+  --muted: var(--overlay);
+  --muted-bg: #e4e9ed;
   --primary: #0f5f4f;
   --primary-foreground: #ffffff;
-  --accent: #eef6f3;
+  --accent: #eaf2ef;
   --danger: #b42318;
+  --danger-foreground: #ffffff;
+  --success: #1f7a4d;
   --ring: #0f5f4f;
+
+  /* Type scale (px / line-height) */
+  --text-2xs: 12.5px;
+  --text-2xs--line-height: 1.4;
+  --text-xs: 14px;
+  --text-xs--line-height: 1.4;
+  --text-sm: 15px;
+  --text-sm--line-height: 1.5;
+  --text-md: 17px;
+  --text-md--line-height: 1.5;
+  --text-lg: 20px;
+  --text-lg--line-height: 1.4;
+  --text-xl: 24px;
+  --text-xl--line-height: 1.3;
+  --text-2xl: 28px;
+  --text-2xl--line-height: 1.2;
+  --text-3xl: 34px;
+  --text-3xl--line-height: 1.1;
+
+  /* Radius scale */
+  --radius-sm: 2px;
+  --radius-md: 4px;
+  --radius-lg: 6px;
+
+  /* Spacing rhythm (multiples of 4px, named for clarity) */
+  --space-gutter: 2px;
+
+  /* Shadows kept minimal — gutters/borders carry structure instead */
+  --shadow-sm: 0 1px 2px rgba(27, 33, 39, 0.06);
+  --shadow-md: 0 2px 8px rgba(27, 33, 39, 0.08);
+
+  /* Fonts: self-hosted via @fontsource-variable. Mono is reserved for
+     durations/timer/numeric figures only — never labels. */
+  --font-sans: "Atkinson Hyperlegible Next Variable", system-ui, sans-serif;
+  --font-mono: "Atkinson Hyperlegible Mono Variable", ui-monospace, monospace;
 }
 
 @theme inline {
@@ -27,24 +84,103 @@
   --color-primary-foreground: var(--primary-foreground);
   --color-accent: var(--accent);
   --color-danger: var(--danger);
+  --color-danger-foreground: var(--danger-foreground);
+  --color-success: var(--success);
   --color-ring: var(--ring);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+
+  /* Reading Room palette, exposed directly for components that need the
+     film/viewport/gutter/caliper vocabulary rather than the semantic
+     background/card/border names above (e.g. the rail nav, the caliper). */
+  --color-film: var(--film);
+  --color-viewport: var(--viewport);
+  --color-gutter: var(--gutter);
+  --color-bone: var(--bone);
+  --color-overlay: var(--overlay);
+  --color-caliper: var(--caliper);
+
+  --font-sans: var(--font-sans);
+  --font-mono: var(--font-mono);
+
+  --text-2xs: var(--text-2xs);
+  --text-2xs--line-height: var(--text-2xs--line-height);
+  --text-xs: var(--text-xs);
+  --text-xs--line-height: var(--text-xs--line-height);
+  --text-sm: var(--text-sm);
+  --text-sm--line-height: var(--text-sm--line-height);
+  --text-md: var(--text-md);
+  --text-md--line-height: var(--text-md--line-height);
+  --text-lg: var(--text-lg);
+  --text-lg--line-height: var(--text-lg--line-height);
+  --text-xl: var(--text-xl);
+  --text-xl--line-height: var(--text-xl--line-height);
+  --text-2xl: var(--text-2xl);
+  --text-2xl--line-height: var(--text-2xl--line-height);
+  --text-3xl: var(--text-3xl);
+  --text-3xl--line-height: var(--text-3xl--line-height);
+
+  --radius-sm: var(--radius-sm);
+  --radius-md: var(--radius-md);
+  --radius-lg: var(--radius-lg);
+
+  --shadow-xs: var(--shadow-sm);
+  --shadow-md: var(--shadow-md);
 }
 
 :root[data-theme="dark"] {
-  --background: #0b1220;
-  --foreground: #e5e9f0;
-  --card: #121a2b;
-  --card-foreground: #e5e9f0;
-  --border: #22314d;
-  --muted: #8a97ac;
-  --muted-bg: #16213a;
+  /* Dark mode — dim reading room */
+  --film: #1b2127;
+  --viewport: #222a31;
+  --gutter: #34404a;
+  --bone: #e3e7ea;
+  --overlay: #9aa6b0;
+  --caliper: #e2b65b;
+
+  --background: var(--film);
+  --foreground: var(--bone);
+  --card: var(--viewport);
+  --card-foreground: var(--bone);
+  --border: var(--gutter);
+  --muted: var(--overlay);
+  --muted-bg: #26303a;
   --primary: #35b28f;
   --primary-foreground: #06110d;
   --accent: #10251f;
   --danger: #f2867a;
+  --danger-foreground: #2a0704;
+  --success: #7fd6ac;
   --ring: #35b28f;
+
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.35);
+  --shadow-md: 0 2px 10px rgba(0, 0, 0, 0.4);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --film: #1b2127;
+    --viewport: #222a31;
+    --gutter: #34404a;
+    --bone: #e3e7ea;
+    --overlay: #9aa6b0;
+    --caliper: #e2b65b;
+
+    --background: var(--film);
+    --foreground: var(--bone);
+    --card: var(--viewport);
+    --card-foreground: var(--bone);
+    --border: var(--gutter);
+    --muted: var(--overlay);
+    --muted-bg: #26303a;
+    --primary: #35b28f;
+    --primary-foreground: #06110d;
+    --accent: #10251f;
+    --danger: #f2867a;
+    --danger-foreground: #2a0704;
+    --success: #7fd6ac;
+    --ring: #35b28f;
+
+    --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.35);
+    --shadow-md: 0 2px 10px rgba(0, 0, 0, 0.4);
+  }
 }
 
 * {
@@ -54,7 +190,12 @@
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: var(--font-sans), Arial, Helvetica, sans-serif;
+  font-family: var(--font-sans);
+}
+
+/* Mono is reserved for durations/timer/numeric figures only — never labels. */
+.font-mono {
+  font-variant-numeric: tabular-nums;
 }
 
 :focus-visible {

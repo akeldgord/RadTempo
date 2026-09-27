@@ -1,0 +1,297 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>Direction A: Reading Room</title>
+    <style>
+      @font-face {
+        font-family: "Atkinson Next";
+        src: url(../../../node_modules/@fontsource-variable/atkinson-hyperlegible-next/files/atkinson-hyperlegible-next-latin-wght-normal.woff2)
+          format("woff2");
+        font-weight: 200 800;
+      }
+      @font-face {
+        font-family: "Atkinson Mono";
+        src: url(../../../node_modules/@fontsource-variable/atkinson-hyperlegible-mono/files/atkinson-hyperlegible-mono-latin-wght-normal.woff2)
+          format("woff2");
+        font-weight: 200 800;
+      }
+      :root {
+        --film: #1b2127;
+        --viewport: #222a31;
+        --gutter: #34404a;
+        --bone: #e3e7ea;
+        --overlay: #9aa6b0;
+        --caliper: #e2b65b;
+        --rail: #171c21;
+        --sans: "Atkinson Next", system-ui, sans-serif;
+        --mono: "Atkinson Mono", ui-monospace, monospace;
+      }
+      * {
+        box-sizing: border-box;
+        margin: 0;
+      }
+      body {
+        background: var(--film);
+        color: var(--bone);
+        font-family: var(--sans);
+        font-size: 15px;
+        line-height: 1.45;
+        -webkit-font-smoothing: antialiased;
+      }
+      .app {
+        display: grid;
+        grid-template-columns: 208px 1fr;
+        min-height: 100vh;
+      }
+      .rail {
+        background: var(--rail);
+        border-right: 1px solid var(--gutter);
+        padding: 22px 14px;
+        display: flex;
+        flex-direction: column;
+        gap: 28px;
+      }
+      .brand {
+        font-weight: 700;
+        font-size: 18px;
+        letter-spacing: 0.01em;
+        padding: 0 10px;
+      }
+      .brand span {
+        color: var(--caliper);
+      }
+      .nav a {
+        display: block;
+        padding: 8px 10px;
+        border-radius: 4px;
+        color: var(--overlay);
+        text-decoration: none;
+        font-size: 15px;
+      }
+      .nav a[aria-current] {
+        color: var(--bone);
+        background: var(--viewport);
+        box-shadow: inset 2px 0 0 var(--caliper);
+      }
+      main {
+        padding: 28px 32px 40px;
+        min-width: 0;
+      }
+      header {
+        display: flex;
+        align-items: baseline;
+        justify-content: space-between;
+        gap: 16px;
+        margin-bottom: 20px;
+        flex-wrap: wrap;
+      }
+      h1 {
+        font-size: 28px;
+        font-weight: 700;
+        letter-spacing: -0.01em;
+      }
+      .sub {
+        color: var(--overlay);
+        font-size: 14px;
+      }
+      .grid {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 2px;
+        background: var(--gutter);
+        border: 2px solid var(--gutter);
+        border-radius: 6px;
+        overflow: hidden;
+      }
+      .vp {
+        background: var(--viewport);
+        position: relative;
+        min-height: 228px;
+        padding: 14px 16px;
+        display: grid;
+        grid-template-rows: auto 1fr auto;
+        cursor: pointer;
+      }
+      .vp:hover {
+        background: #26303a;
+      }
+      .tl {
+        font-size: 14px;
+        font-weight: 600;
+        line-height: 1.3;
+        max-width: 70%;
+      }
+      .tr {
+        position: absolute;
+        top: 14px;
+        right: 16px;
+        font-size: 13px;
+        color: var(--overlay);
+        text-align: right;
+      }
+      .cal {
+        align-self: center;
+        margin: 10px 0 6px;
+      }
+      .bl .t {
+        font-family: var(--mono);
+        font-size: 34px;
+        font-weight: 500;
+        letter-spacing: -0.02em;
+        line-height: 1;
+      }
+      .bl .k {
+        font-size: 12.5px;
+        color: var(--overlay);
+        margin-top: 4px;
+      }
+      .br {
+        position: absolute;
+        right: 16px;
+        bottom: 14px;
+        text-align: right;
+        font-size: 13px;
+      }
+      .br .d {
+        font-family: var(--mono);
+        font-size: 15px;
+        color: var(--caliper);
+      }
+      .br .m {
+        color: var(--overlay);
+        font-size: 12.5px;
+      }
+      .status {
+        margin-top: 18px;
+        display: grid;
+        grid-template-columns: repeat(4, auto);
+        justify-content: start;
+        gap: 8px 44px;
+        padding: 14px 4px;
+        border-top: 1px solid var(--gutter);
+      }
+      .status div {
+        font-size: 13px;
+        color: var(--overlay);
+      }
+      .status b {
+        display: block;
+        font-family: var(--mono);
+        font-weight: 500;
+        font-size: 20px;
+        color: var(--bone);
+      }
+      svg text {
+        font-family: var(--mono);
+        font-size: 10.5px;
+        fill: var(--overlay);
+      }
+      @media (max-width: 720px) {
+        .app {
+          grid-template-columns: 1fr;
+        }
+        .rail {
+          flex-direction: row;
+          align-items: center;
+          justify-content: space-between;
+          padding: 12px 16px;
+          border-right: 0;
+          border-bottom: 1px solid var(--gutter);
+        }
+        .nav {
+          display: none;
+        }
+        .menu {
+          display: block !important;
+        }
+        main {
+          padding: 20px 16px 32px;
+        }
+        h1 {
+          font-size: 24px;
+        }
+        .grid {
+          grid-template-columns: 1fr;
+        }
+        .vp {
+          min-height: 200px;
+        }
+        .status {
+          grid-template-columns: repeat(2, auto);
+          gap: 12px 28px;
+        }
+      }
+      .menu {
+        display: none;
+        color: var(--overlay);
+        font-size: 14px;
+        border: 1px solid var(--gutter);
+        border-radius: 4px;
+        padding: 6px 10px;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="app">
+      <aside class="rail">
+        <div class="brand">Rad<span>Tempo</span></div>
+        <nav class="nav">
+          <a>Start</a><a aria-current="page">Dashboard</a><a>History</a
+          ><a>Studies</a><a>Achievements</a><a>Settings</a><a>Admin</a>
+        </nav>
+        <span class="menu">Menu</span>
+      </aside>
+      <main>
+        <header>
+          <div>
+            <h1>Dashboard</h1>
+            <p class="sub">Each study against your own prior pace.</p>
+          </div>
+          <p class="sub">Last 10 reads compared with the 20 before them</p>
+        </header>
+        <section class="grid" id="grid"></section>
+        <section class="status">
+          <div><b>151</b>completed reads</div>
+          <div><b>22:20:11</b>active reading time</div>
+          <div><b>6.8</b>timed reads per hour</div>
+          <div><b>8 days</b>reading streak</div>
+        </section>
+      </main>
+    </div>
+    <script src="data.js"></script>
+    <script>
+      const W = 300,
+        H = 46;
+      function caliper(st) {
+        const vals = [st.recent, st.prev].filter(Boolean);
+        const lo = Math.min(...vals) * 0.82,
+          hi = Math.max(...vals) * 1.14;
+        const x = (v) => 12 + ((v - lo) / (hi - lo)) * (W - 24);
+        let ticks = "";
+        for (let i = 0; i <= 20; i++) {
+          const tx = 12 + (i * (W - 24)) / 20;
+          ticks += `<line x1="${tx}" x2="${tx}" y1="20" y2="${i % 5 ? 25 : 29}" stroke="#56636E"/>`;
+        }
+        const r = x(st.recent);
+        let prev = "";
+        if (st.prev) {
+          const p = x(st.prev);
+          prev = `<line x1="${p}" x2="${p}" y1="8" y2="34" stroke="#9AA6B0" stroke-dasharray="2 2"/><text x="${p}" y="44" text-anchor="middle">prev ${fmt(st.prev)}</text>
+   <line x1="${r}" x2="${p}" y1="14" y2="14" stroke="#E2B65B" stroke-width="1"/>`;
+        }
+        return `<svg viewBox="0 0 ${W} ${H}" width="100%" height="${H}" role="img" aria-label="Recent pace ${fmt(st.recent)}${st.prev ? `, previous ${fmt(st.prev)}` : ""}">
+   <line x1="12" x2="${W - 12}" y1="20" y2="20" stroke="#56636E"/>${ticks}${prev}
+   <path d="M${r} 7 l6 7 l-6 7 l-6 -7z" fill="#E2B65B"/></svg>`;
+      }
+      document.getElementById("grid").innerHTML = STUDIES.map((st) => {
+        const p = pct(st);
+        return `<article class="vp"><div class="tl">${st.name}</div><div class="tr">${st.reads} reads<br>${st.maturity}</div>
+ <div class="cal">${caliper(st)}</div>
+ <div class="bl"><div class="t">${fmt(st.recent)}</div><div class="k">recent pace</div></div>
+ <div class="br">${p !== null ? `<div class="d">↓ ${p}%</div><div class="m">faster than before</div>` : `<div class="m">baseline forming</div>`}</div></article>`;
+      }).join("");
+    </script>
+  </body>
+</html>

@@ -22,7 +22,9 @@ export function MobileNav({ isAdmin }: { isAdmin: boolean }) {
       >
         <Menu size={18} aria-hidden="true" />
       </Button>
-      <span className="text-sm font-semibold text-foreground">RadTempo</span>
+      <span className="text-sm font-bold tracking-tight text-foreground">
+        Rad<span className="text-caliper">Tempo</span>
+      </span>
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogContent className="left-0 top-0 h-full max-w-64 -translate-x-0 -translate-y-0 rounded-none border-r border-l-0 border-t-0 border-b-0 p-0">
           <DialogTitle className="sr-only">Navigation</DialogTitle>
