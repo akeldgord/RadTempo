@@ -102,7 +102,15 @@ export default async function StudyAnalyticsPage({
       >
         {stats.recentPaceMs !== null ? (
           <CaliperPanel
-            className="mb-8 w-full"
+            // Capped so the hero caliper still fills available width on
+            // typical viewports (per R6) but stops growing past a wide
+            // desktop panel's width — the SVG's tick/label text scales
+            // uniformly with its rendered width (see caliper.tsx's
+            // aspect-ratio comment), so letting it stretch edge-to-edge
+            // on very wide screens (1440px+) blew the text up to the
+            // point of overlapping the panel below it. See DESIGN_NOTES.md
+            // "R3 verification".
+            className="mb-8 w-full max-w-xl"
             size="lg"
             recentMs={stats.recentPaceMs}
             previousMs={stats.comparisonPaceMs}
