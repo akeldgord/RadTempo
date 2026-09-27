@@ -290,3 +290,130 @@ factors are computed — only how already-computed values are surfaced.
   together in proportion, never distorted — which is simpler than
   computing a second, wider viewBox for `size="lg"` and gives the same
   result.
+
+## R3 verification
+
+Final SHA: `a958810bb21dd5b89118c3a637b945bd7fe31441`.
+
+**e2e coverage added.** `e2e/seed.ts` (new): a schema-direct seeding
+helper for history too large to build through the UI in test time —
+`seedCompletedCases`/`seedExcludedCase` insert already-COMPLETED
+`timing_entries` (with tags for excluded cases), `backdateActiveTimerStart`
+rewrites an in-flight timer's `started_at` so Finish produces a chosen
+duration without waiting in real time. `e2e/r3.spec.ts` (new, 3 tests, one
+`describe.serial`): the R1 post-case comparison graphic (seeds the exact
+`engine.test.ts` fixture that makes learned complexity factors EASY=0.5/
+TYPICAL=1/DIFFICULT=2, then in the browser backdates a 15:00 read,
+classifies Difficult, asserts "25% faster…" text and the Caliper's
+accessible name reading "07:30"; a second 06:00/Easy read asserts "20%
+above…"/"12:00"; tagging that case Interrupted asserts the comparison text
+and the graphic both disappear); R2's dashboard trend-note copy
+(only-excluded reads → "No comparable reads yet…", never "Baseline
+started"/a percentage, through several excluded reads; one eligible read →
+"Baseline started, 1 comparable read"); a 375px mobile journey (start,
+pause, resume, finish, classify, then delete from the _visible_ mobile
+`<ul>`, asserting the desktop `<table>` is `hidden`). All three run as the
+suite's already-authenticated admin (new `e2e/helpers.ts` `openAdminPage`,
+from auth.spec.ts's cached storage state) rather than a fresh invited
+user — see "CI fixes" below.
+
+**CI fixes (from the run on `2739ac2`).**
+
+- `e2e/timer-flow.spec.ts`'s single-case dashboard assertion updated from
+  the pre-R2 `/1 case/` to R2's actual copy, "Baseline started, 1
+  comparable read".
+- `e2e/helpers.ts`'s `completeOnboarding` fired three `getByText("Continue")`
+  clicks back-to-back with no wait between them, which could click before
+  a step's re-render landed. It now waits for each step's own heading
+  (role-scoped `getByRole("button", { name: "Continue" })` too, so it can't
+  match stray text) before advancing.
+- Root cause of the flake/cascade: adding new specs that each spend a
+  `createInvitedUser` login pushes the suite past Better Auth's 5/60s/IP
+  sign-in and sign-up limits (`src/lib/auth.ts`), which the existing suite
+  was tuned right up against — a rate-limited login makes
+  `completeOnboarding`'s `waitForURL(/\/onboarding/)` hang until the
+  30s test timeout. `r3.spec.ts` avoids this entirely by running as the
+  cached admin session (zero additional logins) instead of a new invited
+  user, since none of its three scenarios need account isolation.
+  Verified with three consecutive full local `pnpm e2e` runs: **8/8
+  passed each time.**
+
+**Other suites:** `pnpm lint` clean, `pnpm format:check` clean, `pnpm
+typecheck` clean, `pnpm test` (vitest unit) **70/70 passed**, `pnpm
+test:integration` **94/94 passed**, `pnpm build` succeeds.
+
+**Manual pass** — a demo instance (`radtempo_demo_r3` DB, port 3300,
+production build, admin account with ~28 synthetic reads per study on an
+improving trend) driven with a standalone Playwright script at 375/768/
+1024/1440 in light, plus a dark spot-check at 1024. `overflow` =
+`document.documentElement.scrollWidth > clientWidth`; `console` = page
+console errors + `pageerror`s.
+
+| Page              | 375 | 768          | 1024         | 1440 | 1024 dark    |
+| ----------------- | --- | ------------ | ------------ | ---- | ------------ |
+| `/` (Start)       | ok  | ok           | ok           | ok   | ok           |
+| `/dashboard`      | ok  | ok           | ok           | ok   | ok           |
+| `/analytics/[id]` | ok  | ok           | ok           | ok   | ok           |
+| `/history`        | ok  | **overflow** | ok           | ok   | ok           |
+| `/studies`        | ok  | ok           | ok           | ok   | ok           |
+| `/achievements`   | ok  | ok           | ok           | ok   | ok           |
+| `/settings`       | ok  | ok           | ok           | ok   | ok           |
+| `/settings/data`  | ok  | **overflow** | ok           | ok   | ok           |
+| `/admin`          | ok  | **overflow** | **overflow** | ok   | **overflow** |
+| `/login`          | ok  | ok           | ok           | ok   | ok           |
+
+No console/page errors on any page at any width/theme. The
+`/settings/data` import-preview state (real export zip from `/api/export`,
+uploaded through the actual file input) renders cleanly at 1024 — see
+`docs/design/verification/import-preview-1024.png`.
+
+**Overflow findings — recorded, not fixed** (outside this item's bounded
+scope; none involve console errors or broken function, only a few tens of
+pixels of page-level horizontal scroll at tablet/small-laptop widths from
+content that doesn't wrap/shrink below its container: History's dense
+table, an input row on Settings → Data, and Admin's invite form/tables).
+Deferred to a future pass.
+
+**Caliper at 1440 — found broken, fixed.** The Analytics hero panel's
+`size="lg"` Caliper (R6) scales its SVG uniformly with its container's
+rendered width; on a 1440px viewport that container is >1100px wide (no
+cap), scaling tick/label text to ~54px and overlapping the trend chart
+below it. Capped the hero panel at `max-w-xl` (see commit `a958810`) — it
+still fills its card at typical/laptop widths (R6's actual goal) and stops
+growing past a sane size on ultra-wide screens. Re-verified at 1440: no
+overflow, no overlapping `<text>` elements, screenshots in
+`docs/design/verification/` (`caliper-analytics-1440-before-fix.png` /
+`-fixed.png`). The Dashboard's `size="sm"` caliper, already bounded by its
+fixed-width card, was never affected.
+
+**Keyboard & focus** (Playwright `page.keyboard`, admin account, 1280×900
+unless noted):
+
+- Tab reaches Start's search input and a favorite tile; Enter on a
+  focused favorite starts its timer. **Pass.**
+- Both the search input and a focused favorite tile show a visible
+  `:focus-visible` indicator (`outline: solid 2px` + a ring `box-shadow`).
+  **Pass.**
+- A modality group's `<summary>` (Browse) toggles its `<details>` open/
+  closed on Enter when focused. **Pass.**
+- Once a timer is running, Tab reaches Pause/Finish. **Pass.**
+- Mobile nav (375px): Enter on the "Open menu" button opens the drawer
+  with focus moving inside it (confirmed). Escape closes it, but focus
+  lands on `<body>` instead of returning to the "Open menu" button — same
+  with a real mouse click instead of keyboard activation. **Finding, not
+  fixed** (outside this item's bounded scope): the dialog isn't wrapped in
+  Radix's own `Dialog.Trigger`, just a plain controlled `open`/`onOpenChange`
+  button, so Radix has nothing to restore focus to on close.
+- History's delete confirmation (Radix AlertDialog): opens with focus
+  inside it, Tab stays trapped inside across 6 presses, Escape closes it —
+  but focus likewise lands on `<body>` rather than returning to the row's
+  Delete button that opened it. **Same finding as above, not fixed.**
+- `prefers-reduced-motion: reduce` (`page.emulateMedia`/`newContext`
+  `reducedMotion: "reduce"`): the post-case Caliper marker's
+  `transition-duration` computed style reads `1e-05s` (a floating-point
+  artifact of the global reduced-motion override, i.e. effectively `0s`,
+  not the un-reduced ~300ms ease-out). **Pass.**
+
+Screenshots kept: `docs/design/verification/caliper-analytics-1440-
+before-fix.png`, `caliper-analytics-1440-fixed.png`,
+`import-preview-1024.png`.
