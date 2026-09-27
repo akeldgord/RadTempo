@@ -219,3 +219,37 @@ Re-verified: `pnpm lint`, `format:check`, `typecheck`, `test` (54/54), `build`, 
 - The Studies list's action-icon row could use slightly more breathing room from wrapped two-line study names at the narrowest mobile widths (375px) — legible and functional today, not a blocking issue.
 - Demo screenshots use synthetic seeded data; no production/real-user screenshots were captured (expected for a pre-launch design pass).
 - `next start` logs a harmless warning that `output: standalone` isn't used by `next start` (the app was still exercised correctly for this verification; a real deployment would run `node .next/standalone/server.js`).
+
+## Audit remediation (R1–R6)
+
+Fixes for a bounded set of pre-launch audit findings. No redesign, no
+scope creep, and no change to how historical pace/exclusion/complexity
+factors are computed — only how already-computed values are surfaced.
+
+- **R1 — post-case graphic compared incompatible durations.** The post-case
+  caliper plotted `feedback.recentPaceMs` (complexity-adjusted) against
+  `entry.activeDurationMs` (raw) as if they were on the same scale.
+  `PostCaseFeedback` (`src/features/analytics/types.ts`) now carries an
+  explicit `adjustedDurationMs` — the target case's own duration divided by
+  its learned complexity factor, computed once server-side in
+  `postCaseFeedback` (`src/features/analytics/engine.ts`) and never
+  recomputed in the browser. The post-case panel feeds that value to the
+  graphic instead of the raw duration; "Completed in" still shows the raw
+  duration. `null` for BASELINE_STARTED/BASELINE_BUILDING/EXCLUDED, where
+  there is nothing to compare.
+- **R6 — Caliper legend and responsive width.** Added a compact legend
+  below the graphic naming each marker ("Recent pace (adjusted)", "This
+  read (adjusted)", "Previous pace") so the comparison being drawn is
+  labeled, not just colored. Also fixed the width bug the audit flagged:
+  the SVG's `height` was a fixed pixel value while `width="100%"`, so on
+  any container wider than the 300-unit viewBox the default
+  `preserveAspectRatio="xMidYMid meet"` scaled the whole graphic to fit the
+  _height_ and centered it — rendering at a fixed ~300px regardless of the
+  panel's actual width. Fixed by deriving the SVG's height from its
+  rendered width via CSS `aspect-ratio` (matching the viewBox's own aspect
+  ratio) instead of pinning `height`, so the browser always picks a scale
+  where both axes match the viewBox exactly. This is uniform scaling, not
+  a non-uniform stretch — strokes, markers and text grow or shrink
+  together in proportion, never distorted — which is simpler than
+  computing a second, wider viewBox for `size="lg"` and gives the same
+  result.

@@ -78,78 +78,130 @@ export function Caliper({
   const recentX = x(recentMs);
 
   const label = [
-    `Recent pace ${formatDuration(recentMs)}`,
+    `Recent pace (complexity-adjusted) ${formatDuration(recentMs)}`,
     previousMs != null ? `previous pace ${formatDuration(previousMs)}` : null,
-    thisReadMs != null ? `this read ${formatDuration(thisReadMs)}` : null,
+    thisReadMs != null
+      ? `this read (complexity-adjusted) ${formatDuration(thisReadMs)}`
+      : null,
   ]
     .filter(Boolean)
     .join(", ");
 
   return (
-    <svg
-      viewBox={`0 0 ${WIDTH} ${HEIGHT}`}
-      width="100%"
-      height={HEIGHT}
-      role="img"
-      aria-label={label}
-      className={className}
-    >
-      <line
-        x1={INSET}
-        x2={WIDTH - INSET}
-        y1={TRACK_Y}
-        y2={TRACK_Y}
-        stroke="var(--color-overlay)"
-        strokeOpacity={0.6}
-      />
-      {ticks}
-      {previousMs != null && (
-        <>
-          <line
-            x1={x(previousMs)}
-            x2={x(previousMs)}
-            y1={8 * v}
-            y2={34 * v}
-            stroke="var(--color-overlay)"
-            strokeDasharray="2 2"
-          />
-          <text
-            x={x(previousMs)}
-            y={44 * v}
-            textAnchor="middle"
-            fill="var(--color-overlay)"
-            fontSize={tickFontSize}
-            fontFamily="var(--font-mono)"
-          >
-            prev {formatDuration(previousMs)}
-          </text>
-          <line
-            x1={recentX}
-            x2={x(previousMs)}
-            y1={14 * v}
-            y2={14 * v}
-            stroke="var(--color-caliper)"
-            strokeWidth={1}
-          />
-        </>
-      )}
-      {thisReadMs != null &&
-        (animateThisRead ? (
-          <CaliperMarker fromX={recentX} toX={x(thisReadMs)} cy={TRACK_Y} />
-        ) : (
-          <circle
-            cx={x(thisReadMs)}
-            cy={TRACK_Y}
-            r={3.5 * v}
-            fill="var(--color-viewport)"
-            stroke="var(--color-caliper)"
-            strokeWidth={2}
-          />
-        ))}
-      <path
-        d={`M${recentX} ${7 * v} l${6 * v} ${7 * v} l${-6 * v} ${7 * v} l${-6 * v} ${-7 * v}z`}
-        fill="var(--color-caliper)"
-      />
-    </svg>
+    <div className={className}>
+      <svg
+        viewBox={`0 0 ${WIDTH} ${HEIGHT}`}
+        width="100%"
+        role="img"
+        aria-label={label}
+        // Uniform (aspect-ratio-preserving) scaling: the SVG's intrinsic
+        // height is derived from its rendered width via `aspect-ratio`
+        // rather than pinned with a `height` attribute, so it fills the
+        // container's full width at any size instead of rendering at a
+        // fixed ~300px and sitting centered in extra whitespace — the
+        // scale grows/shrinks evenly in both axes, so strokes, markers and
+        // text stay proportional and never stretch. See DESIGN_NOTES.md
+        // "Audit remediation" (R6).
+        style={{
+          aspectRatio: `${WIDTH} / ${HEIGHT}`,
+          display: "block",
+        }}
+      >
+        <line
+          x1={INSET}
+          x2={WIDTH - INSET}
+          y1={TRACK_Y}
+          y2={TRACK_Y}
+          stroke="var(--color-overlay)"
+          strokeOpacity={0.6}
+        />
+        {ticks}
+        {previousMs != null && (
+          <>
+            <line
+              x1={x(previousMs)}
+              x2={x(previousMs)}
+              y1={8 * v}
+              y2={34 * v}
+              stroke="var(--color-overlay)"
+              strokeDasharray="2 2"
+            />
+            <text
+              x={x(previousMs)}
+              y={44 * v}
+              textAnchor="middle"
+              fill="var(--color-overlay)"
+              fontSize={tickFontSize}
+              fontFamily="var(--font-mono)"
+            >
+              prev {formatDuration(previousMs)}
+            </text>
+            <line
+              x1={recentX}
+              x2={x(previousMs)}
+              y1={14 * v}
+              y2={14 * v}
+              stroke="var(--color-caliper)"
+              strokeWidth={1}
+            />
+          </>
+        )}
+        {thisReadMs != null &&
+          (animateThisRead ? (
+            <CaliperMarker fromX={recentX} toX={x(thisReadMs)} cy={TRACK_Y} />
+          ) : (
+            <circle
+              cx={x(thisReadMs)}
+              cy={TRACK_Y}
+              r={3.5 * v}
+              fill="var(--color-viewport)"
+              stroke="var(--color-caliper)"
+              strokeWidth={2}
+            />
+          ))}
+        <path
+          d={`M${recentX} ${7 * v} l${6 * v} ${7 * v} l${-6 * v} ${7 * v} l${-6 * v} ${-7 * v}z`}
+          fill="var(--color-caliper)"
+        />
+      </svg>
+      <div className="mt-1 flex flex-wrap gap-x-3 gap-y-0.5 text-2xs text-muted">
+        <span className="inline-flex items-center gap-1">
+          <svg width="8" height="8" viewBox="0 0 8 8" aria-hidden="true">
+            <path d="M4 0l4 4-4 4-4-4z" fill="var(--color-caliper)" />
+          </svg>
+          Recent pace (adjusted)
+        </span>
+        {thisReadMs != null && (
+          <span className="inline-flex items-center gap-1">
+            <svg width="8" height="8" viewBox="0 0 8 8" aria-hidden="true">
+              <circle
+                cx="4"
+                cy="4"
+                r="3"
+                fill="var(--color-viewport)"
+                stroke="var(--color-caliper)"
+                strokeWidth="1.5"
+              />
+            </svg>
+            This read (adjusted)
+          </span>
+        )}
+        {previousMs != null && (
+          <span className="inline-flex items-center gap-1">
+            <svg width="10" height="8" viewBox="0 0 10 8" aria-hidden="true">
+              <line
+                x1="5"
+                x2="5"
+                y1="0"
+                y2="8"
+                stroke="var(--color-overlay)"
+                strokeDasharray="2 2"
+              />
+            </svg>
+            Previous pace
+          </span>
+        )}
+      </div>
+    </div>
   );
 }
