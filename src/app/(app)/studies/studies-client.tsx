@@ -27,6 +27,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent } from "@/components/ui/card";
+import { useDialogFocusReturn } from "@/hooks/use-dialog-focus-return";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -92,6 +93,13 @@ export function StudiesClient({
     count: number;
   } | null>(null);
   const [archivedOpen, setArchivedOpen] = useState(false);
+  // Shared by both the delete and archive AlertDialogs below: only one of
+  // the two is ever open at a time (openArchiveOrDeleteConfirm picks
+  // exactly one), so one captured trigger is enough for both.
+  const {
+    capture: captureRowActionTrigger,
+    restoreFocus: restoreRowActionFocus,
+  } = useDialogFocusReturn();
   /** timing counts per study type id, fetched to decide whether a row's
    * action button reads "Archive" (has timings) or "Delete" (none). */
   const [counts, setCounts] = useState<Record<string, number>>({});
@@ -185,6 +193,7 @@ export function StudiesClient({
   /** Studies with recorded cases are archived, not deleted, so history and
    * analytics are kept; only a study with zero timings can be deleted. */
   async function openArchiveOrDeleteConfirm(s: StudyType) {
+    captureRowActionTrigger();
     const result = await countStudyTypeTimingsAction(s.id);
     const count = result.ok ? result.data : 0;
     if (count > 0) {
@@ -413,7 +422,7 @@ export function StudiesClient({
         open={!!deleteTarget}
         onOpenChange={(open) => !open && setDeleteTarget(null)}
       >
-        <AlertDialogContent>
+        <AlertDialogContent onCloseAutoFocus={restoreRowActionFocus}>
           <AlertDialogHeader>
             <AlertDialogTitle>Delete {deleteTarget?.name}?</AlertDialogTitle>
             <AlertDialogDescription>
@@ -434,7 +443,7 @@ export function StudiesClient({
         open={!!archiveTarget}
         onOpenChange={(open) => !open && setArchiveTarget(null)}
       >
-        <AlertDialogContent>
+        <AlertDialogContent onCloseAutoFocus={restoreRowActionFocus}>
           <AlertDialogHeader>
             <AlertDialogTitle>Archive {archiveTarget?.name}?</AlertDialogTitle>
             <AlertDialogDescription>

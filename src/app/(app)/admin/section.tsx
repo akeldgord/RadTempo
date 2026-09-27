@@ -20,7 +20,8 @@ export function Section({
   return (
     <section
       className={cn(
-        "grid gap-x-8 gap-y-3 border-t border-border py-6 sm:grid-cols-[220px_1fr]",
+        // minmax(0, 1fr), not a plain 1fr — see settings/section.tsx.
+        "grid gap-x-8 gap-y-3 border-t border-border py-6 sm:grid-cols-[220px_minmax(0,1fr)]",
         className,
       )}
     >

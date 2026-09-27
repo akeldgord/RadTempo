@@ -124,7 +124,13 @@ export function ImportSection() {
           accept=".zip,application/zip"
           aria-label="RadTempo export file"
           onChange={handleFileChange}
-          className="text-sm text-foreground file:mr-3 file:rounded-md file:border file:border-border file:bg-card file:px-3 file:py-1.5 file:text-sm file:font-medium file:text-foreground"
+          // min-w-0: as a flex item, this file input otherwise defaults to
+          // min-width:auto (its content's intrinsic width, including the
+          // native "Choose File" control and the selected filename), which
+          // can force this row — and the page — wider than the viewport at
+          // narrower widths instead of shrinking to fit. See
+          // DESIGN_NOTES.md "R3 verification".
+          className="min-w-0 flex-1 text-sm text-foreground file:mr-3 file:rounded-md file:border file:border-border file:bg-card file:px-3 file:py-1.5 file:text-sm file:font-medium file:text-foreground"
         />
         {(file || preview || result) && (
           <Button type="button" variant="ghost" size="sm" onClick={reset}>

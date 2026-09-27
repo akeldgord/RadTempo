@@ -280,7 +280,10 @@ export function UsersSection({
           <h3 className="text-sm font-semibold text-foreground">
             Pending invites
           </h3>
-          <div className="overflow-x-auto">
+          {/* `relative`: containing block for the sr-only caption below,
+              so it doesn't escape this container's own horizontal scroll
+              clipping. See DESIGN_NOTES.md "R3 verification". */}
+          <div className="relative overflow-x-auto">
             <table className="w-full text-left text-sm">
               <caption className="sr-only">Pending invites</caption>
               <thead>
@@ -317,8 +320,9 @@ export function UsersSection({
       <div className="flex flex-col gap-3 border-t border-border pt-4">
         <h3 className="text-sm font-semibold text-foreground">All users</h3>
 
-        {/* Desktop / tablet: table, scrolls within its own container. */}
-        <div className="hidden overflow-x-auto sm:block">
+        {/* Desktop / tablet: table, scrolls within its own container.
+            `relative`: containing block for the sr-only caption below. */}
+        <div className="relative hidden overflow-x-auto sm:block">
           <table className="w-full text-left text-sm">
             <caption className="sr-only">All users</caption>
             <thead>

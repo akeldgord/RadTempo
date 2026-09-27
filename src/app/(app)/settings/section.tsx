@@ -22,7 +22,14 @@ export function Section({
     <section
       id={id}
       className={cn(
-        "grid gap-x-8 gap-y-3 border-t border-border py-6 sm:grid-cols-[200px_1fr]",
+        // minmax(0, 1fr), not a plain 1fr: a grid track's automatic
+        // minimum size is its content's min-content width unless
+        // overridden, so wide unwrappable content in this column (e.g.
+        // the import file input, or a table's own overflow-x-auto
+        // wrapper) could force the track — and the whole page — wider
+        // than the viewport instead of shrinking to fit and scrolling
+        // internally. See DESIGN_NOTES.md "R3 verification".
+        "grid gap-x-8 gap-y-3 border-t border-border py-6 sm:grid-cols-[200px_minmax(0,1fr)]",
         className,
       )}
     >

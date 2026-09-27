@@ -12,6 +12,7 @@ import { COMPLEXITY_LABEL } from "@/features/analytics/types";
 import { Button } from "@/components/ui/button";
 import { PageHeader } from "@/components/page-header";
 import { Duration } from "@/components/duration";
+import { useDialogFocusReturn } from "@/hooks/use-dialog-focus-return";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -41,6 +42,8 @@ export function HistoryClient({
   const [page, setPage] = useState(0);
   const [hasMore, setHasMore] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState<HistoryRow | null>(null);
+  const { capture: captureDeleteTrigger, restoreFocus: restoreDeleteFocus } =
+    useDialogFocusReturn();
   const [filters, setFilters] = useState<{
     studyTypeId: string;
     from: string;
@@ -209,8 +212,15 @@ export function HistoryClient({
 
       {!loading && rows.length > 0 && (
         <>
-          {/* Desktop / tablet: dense table, scrolls within its own container. */}
-          <div className="hidden overflow-x-auto rounded-md border border-border sm:block">
+          {/* Desktop / tablet: dense table, scrolls within its own container.
+              `relative` makes this the containing block for the sr-only
+              `<caption>` below (Tailwind's `.sr-only` is `position:
+              absolute`) — without it, the caption escapes this container's
+              overflow clipping and its static position (computed from the
+              wide, pre-scroll table) pushes the whole page's scrollWidth
+              out at narrower viewports. See DESIGN_NOTES.md "R3
+              verification". */}
+          <div className="relative hidden overflow-x-auto rounded-md border border-border sm:block">
             <table className="w-full text-sm">
               <caption className="sr-only">Your completed reads</caption>
               <thead className="border-b border-border bg-muted-bg text-left text-xs font-medium text-muted">
@@ -273,7 +283,10 @@ export function HistoryClient({
                         variant="ghost"
                         size="sm"
                         aria-label={`Delete case from ${new Date(row.finishedAt).toLocaleString()}`}
-                        onClick={() => setDeleteTarget(row)}
+                        onClick={() => {
+                          captureDeleteTrigger();
+                          setDeleteTarget(row);
+                        }}
                       >
                         <Trash2
                           size={14}
@@ -325,7 +338,10 @@ export function HistoryClient({
                   variant="ghost"
                   size="sm"
                   aria-label={`Delete case from ${new Date(row.finishedAt).toLocaleString()}`}
-                  onClick={() => setDeleteTarget(row)}
+                  onClick={() => {
+                    captureDeleteTrigger();
+                    setDeleteTarget(row);
+                  }}
                 >
                   <Trash2
                     size={14}
@@ -365,7 +381,7 @@ export function HistoryClient({
         open={!!deleteTarget}
         onOpenChange={(open) => !open && setDeleteTarget(null)}
       >
-        <AlertDialogContent>
+        <AlertDialogContent onCloseAutoFocus={restoreDeleteFocus}>
           <AlertDialogHeader>
             <AlertDialogTitle>Delete this case?</AlertDialogTitle>
             <AlertDialogDescription>

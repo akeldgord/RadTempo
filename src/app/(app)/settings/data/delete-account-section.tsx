@@ -16,12 +16,14 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { Section } from "../section";
+import { useDialogFocusReturn } from "@/hooks/use-dialog-focus-return";
 
 export function DeleteAccountSection({ userEmail }: { userEmail: string }) {
   const [confirmEmail, setConfirmEmail] = useState("");
   const [open, setOpen] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [deleting, setDeleting] = useState(false);
+  const { capture, restoreFocus } = useDialogFocusReturn();
 
   const canDelete = confirmEmail === userEmail;
 
@@ -74,12 +76,15 @@ export function DeleteAccountSection({ userEmail }: { userEmail: string }) {
           variant="danger"
           size="sm"
           disabled={!canDelete}
-          onClick={() => setOpen(true)}
+          onClick={() => {
+            capture();
+            setOpen(true);
+          }}
           className="self-start"
         >
           Delete my account
         </Button>
-        <AlertDialogContent>
+        <AlertDialogContent onCloseAutoFocus={restoreFocus}>
           <AlertDialogHeader>
             <AlertDialogTitle>Delete your account?</AlertDialogTitle>
             <AlertDialogDescription>

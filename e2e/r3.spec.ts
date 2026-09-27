@@ -208,6 +208,23 @@ test.describe
     ).toHaveCount(0);
   });
 
+  test("history delete dialog: Escape returns focus to the Delete button that opened it", async () => {
+    // A dialog whose `open` state is driven externally (here, by more
+    // than one row's Delete button) doesn't get Radix's automatic
+    // focus-return for free — see src/hooks/use-dialog-focus-return.ts
+    // and DESIGN_NOTES.md "R3 verification".
+    await page.setViewportSize({ width: 1280, height: 900 });
+    await page.goto("/history");
+    const deleteBtn = page
+      .locator('button[aria-label^="Delete case from"]')
+      .first();
+    await deleteBtn.click();
+    await expect(page.getByRole("alertdialog")).toBeVisible();
+    await page.keyboard.press("Escape");
+    await expect(page.getByRole("alertdialog")).toHaveCount(0);
+    await expect(deleteBtn).toBeFocused();
+  });
+
   test("mobile (375px): start, pause, resume, finish, classify, delete from the visible mobile History list", async () => {
     await page.setViewportSize({ width: 375, height: 812 });
 
