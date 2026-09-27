@@ -8,6 +8,8 @@ import type { StudyType } from "@/features/studies/service";
 import type { Tag } from "@/features/tags/service";
 import { formatDuration } from "@/features/analytics/engine";
 import { Button } from "@/components/ui/button";
+import { PageHeader } from "@/components/page-header";
+import { Duration } from "@/components/duration";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -94,10 +96,7 @@ export function HistoryClient({
 
   return (
     <div className="flex flex-col gap-6">
-      <div>
-        <h1 className="text-2xl font-semibold text-foreground">History</h1>
-        <p className="text-sm text-muted">Your completed reads.</p>
-      </div>
+      <PageHeader title="History" subtitle="Your completed reads." />
 
       <div className="flex flex-wrap items-end gap-3">
         <FilterSelect
@@ -165,81 +164,133 @@ export function HistoryClient({
         </div>
       </div>
 
-      <div className="overflow-x-auto rounded-md border border-border">
-        <table className="w-full text-sm">
-          <thead className="border-b border-border bg-muted-bg text-left text-xs font-medium uppercase tracking-wide text-muted">
-            <tr>
-              <th className="px-3 py-2">Date</th>
-              <th className="px-3 py-2">Study</th>
-              <th className="px-3 py-2">Duration</th>
-              <th className="px-3 py-2">Complexity</th>
-              <th className="px-3 py-2">Tags</th>
-              <th className="px-3 py-2">Included in benchmark?</th>
-              <th className="px-3 py-2 text-right">
-                <span className="sr-only">Actions</span>
-              </th>
-            </tr>
-          </thead>
-          <tbody>
-            {loading && (
-              <tr>
-                <td colSpan={7} className="px-3 py-6 text-center text-muted">
-                  Loading...
-                </td>
-              </tr>
-            )}
-            {!loading && rows.length === 0 && (
-              <tr>
-                <td colSpan={7} className="px-3 py-6 text-center text-muted">
-                  No cases match these filters.
-                </td>
-              </tr>
-            )}
-            {!loading &&
-              rows.map((row) => (
-                <tr
-                  key={row.id}
-                  className="border-b border-border last:border-0"
-                >
-                  <td className="px-3 py-2 text-foreground">
+      {loading && (
+        <p className="py-6 text-center text-sm text-muted">Loading...</p>
+      )}
+      {!loading && rows.length === 0 && (
+        <p className="py-6 text-center text-sm text-muted">
+          No cases match these filters.
+        </p>
+      )}
+
+      {!loading && rows.length > 0 && (
+        <>
+          {/* Desktop / tablet: dense table, scrolls within its own container. */}
+          <div className="hidden overflow-x-auto rounded-md border border-border sm:block">
+            <table className="w-full text-sm">
+              <thead className="border-b border-border bg-muted-bg text-left text-xs font-medium text-muted">
+                <tr>
+                  <th className="px-3 py-2">Date</th>
+                  <th className="px-3 py-2">Study</th>
+                  <th className="px-3 py-2">Duration</th>
+                  <th className="px-3 py-2">Complexity</th>
+                  <th className="px-3 py-2">Tags</th>
+                  <th className="px-3 py-2">Included?</th>
+                  <th className="px-3 py-2 text-right">
+                    <span className="sr-only">Actions</span>
+                  </th>
+                </tr>
+              </thead>
+              <tbody>
+                {rows.map((row) => (
+                  <tr
+                    key={row.id}
+                    className="border-b border-border last:border-0"
+                  >
+                    <td className="px-3 py-2 text-foreground">
+                      {new Date(row.finishedAt).toLocaleString()}
+                    </td>
+                    <td className="px-3 py-2 text-foreground">
+                      {row.studyName}
+                    </td>
+                    <td className="px-3 py-2">
+                      <Duration className="text-foreground">
+                        {formatDuration(row.activeDurationMs)}
+                      </Duration>
+                    </td>
+                    <td className="px-3 py-2 text-foreground">
+                      {complexityLabel(row.complexity)}
+                    </td>
+                    <td className="px-3 py-2 text-muted">
+                      {row.tagIds
+                        .map((id) => tags.find((t) => t.id === id)?.name)
+                        .filter(Boolean)
+                        .join(", ") || "—"}
+                    </td>
+                    <td className="px-3 py-2 text-foreground">
+                      {row.included ? "Yes" : "No"}
+                    </td>
+                    <td className="px-3 py-2 text-right">
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        aria-label={`Delete case from ${new Date(row.finishedAt).toLocaleString()}`}
+                        onClick={() => setDeleteTarget(row)}
+                      >
+                        <Trash2
+                          size={14}
+                          className="text-danger"
+                          aria-hidden="true"
+                        />
+                      </Button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+
+          {/* Mobile: stacked rows instead of a horizontally-scrolling table. */}
+          <ul className="flex flex-col rounded-md border border-border sm:hidden">
+            {rows.map((row) => (
+              <li
+                key={row.id}
+                className="flex items-start justify-between gap-3 border-b border-border p-3 last:border-0"
+              >
+                <div className="min-w-0">
+                  <p className="text-sm font-medium text-foreground">
+                    {row.studyName}
+                  </p>
+                  <p className="text-xs text-muted">
                     {new Date(row.finishedAt).toLocaleString()}
-                  </td>
-                  <td className="px-3 py-2 text-foreground">{row.studyName}</td>
-                  <td className="px-3 py-2 font-mono tabular-nums text-foreground">
-                    {formatDuration(row.activeDurationMs)}
-                  </td>
-                  <td className="px-3 py-2 text-foreground">
-                    {complexityLabel(row.complexity)}
-                  </td>
-                  <td className="px-3 py-2 text-muted">
+                  </p>
+                  <div className="mt-1.5 flex items-center gap-2">
+                    <Duration className="text-sm text-foreground">
+                      {formatDuration(row.activeDurationMs)}
+                    </Duration>
+                    <span className="text-xs text-muted">
+                      {complexityLabel(row.complexity)}
+                    </span>
+                  </div>
+                  <p className="mt-1 text-xs text-muted">
                     {row.tagIds
                       .map((id) => tags.find((t) => t.id === id)?.name)
                       .filter(Boolean)
-                      .join(", ") || "—"}
-                  </td>
-                  <td className="px-3 py-2 text-foreground">
-                    {row.included ? "Yes" : "No"}
-                  </td>
-                  <td className="px-3 py-2 text-right">
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="sm"
-                      aria-label={`Delete case from ${new Date(row.finishedAt).toLocaleString()}`}
-                      onClick={() => setDeleteTarget(row)}
-                    >
-                      <Trash2
-                        size={14}
-                        className="text-danger"
-                        aria-hidden="true"
-                      />
-                    </Button>
-                  </td>
-                </tr>
-              ))}
-          </tbody>
-        </table>
-      </div>
+                      .join(", ") || "No tags"}
+                  </p>
+                  <p className="text-xs text-muted">
+                    {row.included ? "Included" : "Excluded"}
+                  </p>
+                </div>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  aria-label={`Delete case from ${new Date(row.finishedAt).toLocaleString()}`}
+                  onClick={() => setDeleteTarget(row)}
+                >
+                  <Trash2
+                    size={14}
+                    className="text-danger"
+                    aria-hidden="true"
+                  />
+                </Button>
+              </li>
+            ))}
+          </ul>
+        </>
+      )}
 
       <div className="flex items-center justify-between">
         <Button
@@ -308,7 +359,7 @@ function FilterSelect({
         id={id}
         value={value}
         onChange={(e) => onChange(e.target.value)}
-        className="h-9 min-w-36 rounded-md border border-border bg-card px-2 text-sm text-foreground"
+        className="h-9 w-full min-w-0 rounded-md border border-border bg-card px-2 text-sm text-foreground sm:w-36"
       >
         {options.map((o) => (
           <option key={o.value} value={o.value}>
