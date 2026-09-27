@@ -1,6 +1,4 @@
-"use client";
-
-import { useEffect, useState } from "react";
+import { CaliperMarker } from "@/components/caliper-marker";
 
 const WIDTH = 300;
 const HEIGHT = 46;
@@ -45,13 +43,6 @@ export function Caliper({
   const hi = Math.max(...values) * 1.14;
   const span = hi - lo || 1;
   const x = (v: number) => INSET + ((v - lo) / span) * (WIDTH - INSET * 2);
-
-  const [settled, setSettled] = useState(!animateThisRead);
-  useEffect(() => {
-    if (!animateThisRead) return;
-    const id = requestAnimationFrame(() => setSettled(true));
-    return () => cancelAnimationFrame(id);
-  }, [animateThisRead]);
 
   const ticks = Array.from({ length: 21 }, (_, i) => {
     const tx = INSET + (i * (WIDTH - INSET * 2)) / 20;
@@ -127,17 +118,19 @@ export function Caliper({
           />
         </>
       )}
-      {thisReadMs != null && (
-        <circle
-          cx={settled ? x(thisReadMs) : recentX}
-          cy={TRACK_Y}
-          r={3.5}
-          fill="var(--color-viewport)"
-          stroke="var(--color-caliper)"
-          strokeWidth={2}
-          style={{ transition: "cx 280ms ease-out" }}
-        />
-      )}
+      {thisReadMs != null &&
+        (animateThisRead ? (
+          <CaliperMarker fromX={recentX} toX={x(thisReadMs)} cy={TRACK_Y} />
+        ) : (
+          <circle
+            cx={x(thisReadMs)}
+            cy={TRACK_Y}
+            r={3.5}
+            fill="var(--color-viewport)"
+            stroke="var(--color-caliper)"
+            strokeWidth={2}
+          />
+        ))}
       <path
         d={`M${recentX} 7 l6 7 l-6 7 l-6 -7z`}
         fill="var(--color-caliper)"
