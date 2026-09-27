@@ -1,0 +1,94 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+
+jobs:
+  build-and-test:
+    name: Lint, typecheck, test, build
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:18
+        env:
+          POSTGRES_USER: radtempo
+          POSTGRES_PASSWORD: radtempo
+          POSTGRES_DB: radtempo_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U radtempo"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Lint
+        run: pnpm lint
+
+      - name: Format check
+        run: pnpm format:check
+
+      - name: Typecheck
+        run: pnpm typecheck
+
+      - name: Unit tests
+        run: pnpm test
+
+      # Backup tests shell out to pg_dump/pg_restore, which must be at least
+      # the server's major version (the Postgres 18 service container).
+      - name: Install PostgreSQL 18 client tools
+        run: |
+          sudo apt-get install -y postgresql-common
+          sudo /usr/share/postgresql-common/pgdg/apt.postgresql.org.sh -y
+          sudo apt-get install -y postgresql-client-18
+          echo "/usr/lib/postgresql/18/bin" >> "$GITHUB_PATH"
+
+      - name: Integration tests
+        run: pnpm test:integration
+        env:
+          DATABASE_URL_TEST: postgres://radtempo:radtempo@localhost:5432/radtempo_test
+          AUTH_SECRET: dummy-ci-secret-not-for-production-use-only
+
+      - name: Build
+        run: pnpm build
+        env:
+          AUTH_SECRET: dummy-ci-secret-not-for-production-use-only
+          # Required at module load; the build never connects (same
+          # placeholder as the Dockerfile's builder stage).
+          DATABASE_URL: postgres://placeholder:placeholder@localhost:5432/placeholder
+
+  docker-build:
+    name: Docker image build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build image (no push)
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          push: false

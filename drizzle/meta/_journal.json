@@ -1,0 +1,27 @@
+{
+  "version": "7",
+  "dialect": "postgresql",
+  "entries": [
+    {
+      "idx": 0,
+      "version": "7",
+      "when": 1790457109391,
+      "tag": "0000_amazing_roland_deschain",
+      "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1790460504779,
+      "tag": "0001_overjoyed_grandmaster",
+      "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1790465884719,
+      "tag": "0002_romantic_robin_chapel",
+      "breakpoints": true
+    }
+  ]
+}

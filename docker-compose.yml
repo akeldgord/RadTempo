@@ -1,0 +1,50 @@
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: postgres://radtempo:${POSTGRES_PASSWORD}@postgres:5432/radtempo
+      AUTH_SECRET: ${AUTH_SECRET}
+      APP_URL: ${APP_URL}
+      REGISTRATION_MODE: ${REGISTRATION_MODE:-invite_only}
+      INITIAL_ADMIN_EMAIL: ${INITIAL_ADMIN_EMAIL:-}
+      INITIAL_ADMIN_PASSWORD: ${INITIAL_ADMIN_PASSWORD:-}
+      SMTP_HOST: ${SMTP_HOST:-}
+      SMTP_PORT: ${SMTP_PORT:-}
+      SMTP_USERNAME: ${SMTP_USERNAME:-}
+      SMTP_PASSWORD: ${SMTP_PASSWORD:-}
+      SMTP_FROM: ${SMTP_FROM:-}
+      EMAIL_VERIFICATION_REQUIRED: ${EMAIL_VERIFICATION_REQUIRED:-false}
+      TELEMETRY_ENABLED: ${TELEMETRY_ENABLED:-false}
+      TELEMETRY_ENDPOINT: ${TELEMETRY_ENDPOINT:-}
+      NODE_ENV: production
+    ports:
+      - "${APP_PORT:-3000}:3000"
+    volumes:
+      - radtempo_backups:/backups
+
+  postgres:
+    image: postgres:18-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: radtempo
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: radtempo
+    volumes:
+      - radtempo_pgdata:/var/lib/postgresql/data
+    # Not published to the host: only `app` (on the compose network) can
+    # reach Postgres.
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U radtempo -d radtempo"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+volumes:
+  radtempo_pgdata:
+  radtempo_backups:

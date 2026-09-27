@@ -1,0 +1,27 @@
+services:
+  app:
+    # Caddy reverse-proxies to `app` on the compose network; the app's host
+    # port publication from docker-compose.yml must be removed entirely (a
+    # plain `ports: []` only appends an empty list under Compose's default
+    # merge rules and would leave the base ports published) — `!reset`
+    # requires Docker Compose >= 2.24.
+    ports: !reset []
+
+  caddy:
+    image: caddy:2-alpine
+    restart: unless-stopped
+    depends_on:
+      - app
+    environment:
+      DOMAIN: ${DOMAIN}
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./docker/Caddyfile:/etc/caddy/Caddyfile:ro
+      - radtempo_caddy_data:/data
+      - radtempo_caddy_config:/config
+
+volumes:
+  radtempo_caddy_data:
+  radtempo_caddy_config:
