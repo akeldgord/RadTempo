@@ -138,23 +138,23 @@ Subject: a personal instrument a radiologist keeps open beside PACS, often in a 
 
 #### Contrast table (computed from `src/app/globals.css` token values, WCAG 2.1 relative-luminance formula; script in `DESIGN_NOTES.md`-adjacent scratch, reproducible from the hex values below)
 
-| Pair | Light | Dark |
-|---|---|---|
-| Body text / background | 14.42:1 PASS | 13.05:1 PASS |
-| Body text / card | 16.24:1 PASS | 11.70:1 PASS |
-| Muted text / background | 5.56:1 PASS | 6.54:1 PASS |
-| Muted text / card | 6.26:1 PASS | 5.86:1 PASS |
-| Caliper (benchmark) text / background | 5.12:1 PASS | 8.56:1 PASS |
-| Caliper (benchmark) text / card | 5.76:1 PASS | 7.67:1 PASS |
-| Primary/link text / background | 6.31:1 PASS | 6.39:1 PASS |
-| Primary/link text / card | 7.10:1 PASS | 5.73:1 PASS |
-| Primary button text / primary fill | 7.10:1 PASS | 7.45:1 PASS |
-| Danger text / background | 5.84:1 PASS | 6.55:1 PASS |
-| Danger text / card | 6.57:1 PASS | 5.87:1 PASS |
-| Danger button text / danger fill | 6.57:1 PASS | 7.49:1 PASS |
-| Success text / background | 4.72:1 PASS | 9.37:1 PASS |
-| Body text / muted hover surface | 13.28:1 PASS | 10.78:1 PASS |
-| Input/select border / card (UI boundary, 3:1 target) | 3.58:1 PASS | 3.45:1 PASS |
+| Pair                                                 | Light        | Dark         |
+| ---------------------------------------------------- | ------------ | ------------ |
+| Body text / background                               | 14.42:1 PASS | 13.05:1 PASS |
+| Body text / card                                     | 16.24:1 PASS | 11.70:1 PASS |
+| Muted text / background                              | 5.56:1 PASS  | 6.54:1 PASS  |
+| Muted text / card                                    | 6.26:1 PASS  | 5.86:1 PASS  |
+| Caliper (benchmark) text / background                | 5.12:1 PASS  | 8.56:1 PASS  |
+| Caliper (benchmark) text / card                      | 5.76:1 PASS  | 7.67:1 PASS  |
+| Primary/link text / background                       | 6.31:1 PASS  | 6.39:1 PASS  |
+| Primary/link text / card                             | 7.10:1 PASS  | 5.73:1 PASS  |
+| Primary button text / primary fill                   | 7.10:1 PASS  | 7.45:1 PASS  |
+| Danger text / background                             | 5.84:1 PASS  | 6.55:1 PASS  |
+| Danger text / card                                   | 6.57:1 PASS  | 5.87:1 PASS  |
+| Danger button text / danger fill                     | 6.57:1 PASS  | 7.49:1 PASS  |
+| Success text / background                            | 4.72:1 PASS  | 9.37:1 PASS  |
+| Body text / muted hover surface                      | 13.28:1 PASS | 10.78:1 PASS |
+| Input/select border / card (UI boundary, 3:1 target) | 3.58:1 PASS  | 3.45:1 PASS  |
 
 All text pairs clear the 4.5:1 AA floor with headroom in both themes; the one UI (non-text) pair — form-control borders — clears the 3:1 floor after the `--input-border` fix above. `--border` (decorative dividers, table rules, card/viewport hairlines: ~1.4:1) intentionally does not target 3:1, since those are not the sole means of identifying an interactive component's boundary.
 
@@ -169,22 +169,22 @@ Fresh production build (`pnpm build`) against a clean `radtempo_demo_final` Post
 
 Every one of the 56 captures was loaded with `console`/`pageerror` listeners attached and checked for `document.documentElement.scrollWidth > window.innerWidth`.
 
-| Page | Desktop console errs | Desktop overflow | Mobile console errs | Mobile overflow |
-|---|---|---|---|---|
-| login | 0 | no | 0 | no |
-| setup | 0 | no | 0 | no |
-| onboarding | 0 | no | 0 | no |
-| start | 0 | no | 0 | no |
-| start-timer-running | 0 | no | 0 | no |
-| post-case-panel | 0 | no | 0 | no |
-| dashboard | 0 | no | 0 | no |
-| analytics | 0 | no | 0 | no |
-| history | 0 | no | 0 | no |
-| studies | 0 | no | 0 | no |
-| achievements | 0 | no | 0 | no |
-| settings | 0 | no | 0 | no |
-| settings-data | 0 | no | 0 | no |
-| admin | 0 | no | 0 | no |
+| Page                | Desktop console errs | Desktop overflow | Mobile console errs | Mobile overflow |
+| ------------------- | -------------------- | ---------------- | ------------------- | --------------- |
+| login               | 0                    | no               | 0                   | no              |
+| setup               | 0                    | no               | 0                   | no              |
+| onboarding          | 0                    | no               | 0                   | no              |
+| start               | 0                    | no               | 0                   | no              |
+| start-timer-running | 0                    | no               | 0                   | no              |
+| post-case-panel     | 0                    | no               | 0                   | no              |
+| dashboard           | 0                    | no               | 0                   | no              |
+| analytics           | 0                    | no               | 0                   | no              |
+| history             | 0                    | no               | 0                   | no              |
+| studies             | 0                    | no               | 0                   | no              |
+| achievements        | 0                    | no               | 0                   | no              |
+| settings            | 0                    | no               | 0                   | no              |
+| settings-data       | 0                    | no               | 0                   | no              |
+| admin               | 0                    | no               | 0                   | no              |
 
 **Zero console errors and zero horizontal overflow across all 56 desktop/mobile × light/dark combinations.**
 
@@ -201,6 +201,17 @@ Every after screenshot was reviewed directly (all 14 pages at both widths in lig
 - **States:** distinct empty states (no history yet vs. filtered-to-nothing, each with one clear next action), app-segment `loading.tsx`/`error.tsx` skeletons built on a static, non-shimmering `Skeleton` primitive, and a heavier skeleton for the study-detail analytics page.
 - **Accessibility:** skip link to `#main-content`; table captions/`scope="col"` headers on every data table; `--input-border` token so form controls clear the 3:1 non-text-contrast floor; verified focus-visible rings, icon-button `aria-label`s, dialog focus trapping, one `<h1>` per page, accessible text alternatives (`role="img"` + computed labels, `sr-only` summaries + data tables) for the Caliper and trend chart; every color-coded indicator pairs color with an icon or text label. Full contrast table in Step 6 above — all text pairs clear 4.5:1 AA in both themes.
 - **Motion:** the caliper marker's post-case slide now animates a compositor-only `transform` instead of the SVG `cx` attribute; confirmed every other transition is already compositor-safe/paint-limited, no scroll-linked motion or animated layout properties anywhere, and `prefers-reduced-motion` makes everything instant.
+
+### Post-review fixes (round 2)
+
+A design review of `docs/design/compare/*` caught four issues the first pass missed; all four are fixed in app code (not just screenshots) and reverified against a freshly rebuilt, freshly seeded instance (same approach as above):
+
+1. **Start favorites tiles too tall, empty gutter cell with 4 favorites.** `Viewport` gained a `compact` size (≈64–96px, `min-h-16 sm:min-h-24`) used only by Start's `FavoriteTile`, and `ViewportGrid` gained a `fitContent` mode that lays out tiles with `flex flex-wrap` instead of a fixed grid — each tile carries `flex-1`, so items on a partial last row stretch to fill it instead of leaving the container's border-colored background exposed as a bare cell. Verified at 1, 2, 4, and 5 favorites, desktop and mobile: every row fills edge-to-edge, no gutter-colored gaps, no overflow.
+2. **Complexity distribution bars nearly invisible.** Replaced the hairline `border-b` track/fill with solid bars: track is `bg-muted` (the already-audited ~5.6–6.5:1 muted-text color), fill is `bg-caliper`, both well clear of the 3:1 non-text-contrast floor in light and dark. Count text was already shown and is unchanged.
+3. **Analytics benchmark Caliper tiny and left-offset.** `Caliper` gained a `size` prop (`"sm"` default for the compact Dashboard cards, `"lg"` — 2× the vertical geometry — for the Analytics detail page); `CaliperPanel`/the page now render it at `size="lg"` and full panel width (`w-full`, no `max-w-xl` cap) instead of a narrow, left-aligned strip. The Dashboard's compact cards are unaffected (still `size="sm"`).
+4. **Complexity rendered as raw `TYPICAL`/`EASY`/`DIFFICULT` in Analytics' recent-cases table.** Added a shared `COMPLEXITY_LABEL` map (`src/features/analytics/types.ts`) and used it in the Analytics table (the actual bug), History's table (which already had an equivalent local helper — now delegates to the shared map), and the complexity-distribution row labels. Stored/compared values are untouched; only the label changed.
+
+Re-verified: `pnpm lint`, `format:check`, `typecheck`, `test` (54/54), `build`, and `pnpm e2e` (5/5) all pass. Recaptured `start`, `start-timer-running`, `post-case-panel`, and `analytics` (16 files) plus their 8 compare strips against a fresh build/fresh seed (same deterministic CT A/P +C 10%-faster data); all 16 recaptures show 0 console errors and 0 horizontal overflow, desktop and mobile, light and dark.
 
 ### Known gaps
 
