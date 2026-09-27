@@ -137,5 +137,7 @@ describe("Caddyfile validity (best-effort)", () => {
       }
       throw error;
     }
-  });
+    // Pulling the caddy image on a fresh runner takes longer than the
+    // default 5s test timeout; the docker call itself is capped at 60s.
+  }, 90_000);
 });
