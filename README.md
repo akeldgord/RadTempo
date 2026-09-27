@@ -16,7 +16,11 @@ Time your reads, tag their complexity, and watch your own pace trend over time �
 <br>
 
 <p align="center">
-  <img src="docs/images/dashboard.png" alt="RadTempo dashboard showing per-study benchmarks and an overview of completed cases, active reading time, and reading-day streak" width="100%">
+  <a href="docs/media/radtempo-launch.mp4">
+    <img src="docs/images/launch.gif" alt="RadTempo in 14 seconds: start a timed read with one click, finish it, classify its complexity, and see your pace against your own prior reads" width="100%">
+  </a>
+  <br>
+  <sub><a href="docs/media/radtempo-launch.mp4">Watch the full launch video with sound (22s)</a> · demo data is fictional</sub>
 </p>
 
 RadTempo helps radiologists measure and improve their interpretation pace. Choose the type of examination you're about to read, start the timer, finish the case, and RadTempo builds a personal picture of how your reading pace changes over time. No patient information is needed or intended to be stored. Your benchmark is your own prior performance.
@@ -61,7 +65,11 @@ Nothing here is compared between radiologists. There is no leaderboard, departme
     </td>
   </tr>
   <tr>
-    <td width="50%" colspan="2">
+    <td width="50%">
+      <img src="docs/images/dashboard.png" alt="RadTempo dashboard showing per-study benchmarks and an overview of completed cases, active reading time, and reading-day streak">
+      <p align="center"><em>Dashboard — each study against your own prior pace</em></p>
+    </td>
+    <td width="50%">
       <img src="docs/images/dashboard-dark.png" alt="RadTempo dashboard in dark theme">
       <p align="center"><em>Dashboard in dark theme</em></p>
     </td>
