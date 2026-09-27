@@ -2,16 +2,10 @@
 
 import { useRouter } from "next/navigation";
 import { useState } from "react";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Section } from "./section";
 
 const RESTORE_CONFIRMATION_PHRASE = "RESTORE";
 const MIN_PASSPHRASE_LENGTH = 12;
@@ -248,28 +242,20 @@ function RestoreForm() {
 
 export function BackupSection() {
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>Backup</CardTitle>
-        <CardDescription>
-          Encrypted with age (scrypt passphrase mode) via pg_dump/pg_restore.
-          See docs/backup-restore.md for the manual CLI workflow.
-        </CardDescription>
-      </CardHeader>
-      <CardContent className="flex flex-col gap-6">
-        <div className="flex flex-col gap-3">
-          <h3 className="text-sm font-semibold text-foreground">
-            Create backup
-          </h3>
-          <BackupForm />
-        </div>
-        <div className="flex flex-col gap-3">
-          <h3 className="text-sm font-semibold text-foreground">
-            Restore backup
-          </h3>
-          <RestoreForm />
-        </div>
-      </CardContent>
-    </Card>
+    <Section
+      title="Backup"
+      description="Encrypted with age (scrypt passphrase mode) via pg_dump/pg_restore. See docs/backup-restore.md for the manual CLI workflow."
+    >
+      <div className="flex flex-col gap-3">
+        <h3 className="text-sm font-semibold text-foreground">Create backup</h3>
+        <BackupForm />
+      </div>
+      <div className="flex flex-col gap-3 border-t border-border pt-4">
+        <h3 className="text-sm font-semibold text-foreground">
+          Restore backup
+        </h3>
+        <RestoreForm />
+      </div>
+    </Section>
   );
 }
