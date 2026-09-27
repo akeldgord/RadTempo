@@ -7,6 +7,12 @@ export async function register() {
   try {
     await bootstrapInitialAdmin();
   } catch (error) {
-    console.error("[bootstrap] Failed to create initial admin:", error);
+    // Log only name/message/stack, never the raw error object — it could
+    // otherwise embed INITIAL_ADMIN_EMAIL. See docs/security-review.md.
+    const safe =
+      error instanceof Error
+        ? { name: error.name, message: error.message, stack: error.stack }
+        : String(error);
+    console.error("[bootstrap] Failed to create initial admin:", safe);
   }
 }

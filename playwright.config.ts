@@ -38,6 +38,9 @@ export default defineConfig({
         "e2e-test-secret-not-for-production-use-only",
       APP_URL: process.env.APP_URL ?? "http://localhost:3000",
       REGISTRATION_MODE: process.env.REGISTRATION_MODE ?? "invite_only",
+      SETUP_TOKEN:
+        process.env.SETUP_TOKEN ??
+        "e2e-setup-token-not-for-production-use-only",
       NODE_ENV: "production",
     },
   },

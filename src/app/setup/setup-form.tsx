@@ -28,6 +28,16 @@ export function SetupForm() {
       <CardContent className="pt-6">
         <form action={formAction} className="flex flex-col gap-4">
           <div className="flex flex-col gap-1.5">
+            <Label htmlFor="setupToken">Setup token</Label>
+            <Input
+              id="setupToken"
+              name="setupToken"
+              type="password"
+              required
+              autoComplete="off"
+            />
+          </div>
+          <div className="flex flex-col gap-1.5">
             <Label htmlFor="name">Name</Label>
             <Input id="name" name="name" required autoComplete="name" />
           </div>

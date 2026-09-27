@@ -100,12 +100,18 @@ export const auth = betterAuth({
     user: {
       create: {
         before: async (data) => {
-          const existingUsers = await userCount();
-          const isFirstUser = existingUsers === 0;
-
-          if (!isFirstUser && !isRegistrationAllowedInCurrentContext()) {
+          // Being first never grants permission on its own: every user
+          // creation — including the very first — must go through the
+          // trusted registration context (runWithRegistrationAllowed),
+          // which our vetted /setup and /register flows establish only
+          // after their own checks pass. A direct call to Better Auth's
+          // sign-up endpoint is always rejected here, zero users or not.
+          if (!isRegistrationAllowedInCurrentContext()) {
             return false;
           }
+
+          const existingUsers = await userCount();
+          const isFirstUser = existingUsers === 0;
 
           return {
             data: {

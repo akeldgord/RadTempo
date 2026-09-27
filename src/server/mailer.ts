@@ -40,9 +40,7 @@ export async function sendMail(options: {
   if (!client) {
     // No SMTP configured: log for visibility in dev/self-hosted setups
     // without swallowing the intent of the email.
-    console.warn(
-      `[mailer] SMTP not configured; not sending email to ${options.to}: ${options.subject}`,
-    );
+    console.warn("[mailer] SMTP not configured; message not sent");
     return { sent: false };
   }
 

@@ -136,7 +136,9 @@ Then start the app:
 docker compose up -d
 ```
 
-Open `http://localhost:3000`. On first run, you'll be sent to `/setup`, where you create the initial admin account (or set `INITIAL_ADMIN_EMAIL` / `INITIAL_ADMIN_PASSWORD` in `.env` beforehand). There are no default credentials.
+Before first start, either set `INITIAL_ADMIN_EMAIL`/`INITIAL_ADMIN_PASSWORD` in `.env` to have an admin account created automatically, or set `SETUP_TOKEN` (generate with `openssl rand -base64 32`) to use the `/setup` wizard instead. There are no default credentials, and being the first visitor never grants access on its own — one of these must be configured or `/setup` refuses to create anyone.
+
+Open `http://localhost:3000`. On first run without `INITIAL_ADMIN_EMAIL`, you'll be sent to `/setup`, where you enter the setup token plus the initial admin's name, email, and password. See [`docs/configuration.md`](docs/configuration.md) for details.
 
 ### Exposing RadTempo on a public domain
 

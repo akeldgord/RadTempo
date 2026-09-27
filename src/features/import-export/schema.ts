@@ -78,9 +78,9 @@ export const timingSchema = z
     paused_duration_ms: z.number().int().min(0),
     active_duration_ms: z.number().int().min(0),
     complexity: z.enum(["EASY", "TYPICAL", "DIFFICULT"]),
-    tag_ids: z.array(uuid),
+    tag_ids: z.array(uuid).max(50),
     classification_finalized_at: isoDateTime.nullable(),
-    pause_events: z.array(pauseEventSchema),
+    pause_events: z.array(pauseEventSchema).max(500),
   })
   .superRefine((entry, ctx) => {
     const started = new Date(entry.started_at).getTime();
@@ -131,8 +131,8 @@ export const importBundleSchema = z
   .object({
     manifest: manifestSchema,
     profile: profileSchema,
-    studyTypes: z.array(studyTypeSchema),
-    tags: z.array(tagSchema),
+    studyTypes: z.array(studyTypeSchema).max(2000),
+    tags: z.array(tagSchema).max(500),
     timings: z.array(timingSchema).max(MAX_TIMINGS),
     preferences: preferencesSchema,
   })

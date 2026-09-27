@@ -11,7 +11,6 @@ import {
 import { sql as rawSql, db } from "@/db";
 import { user as userTable } from "@/db/schema";
 import { eq } from "drizzle-orm";
-import { runWithRegistrationAllowed } from "@/server/registration-gate";
 
 /**
  * EMAIL_VERIFICATION_REQUIRED is the single source of truth for whether
@@ -61,15 +60,27 @@ async function freshAuth() {
       sendMail: vi.fn().mockResolvedValue({ sent: false }),
     };
   });
-  const mod = await import("@/lib/auth");
-  return mod.auth;
+  // `vi.resetModules()` gives `@/lib/auth` a fresh copy of every module it
+  // imports, including `@/server/registration-gate` (a new
+  // AsyncLocalStorage instance). Grab this test's `runWithRegistrationAllowed`
+  // from that same fresh copy, since a `runWithRegistrationAllowed` captured
+  // from a module instance imported before the reset would set a flag the
+  // freshly-imported `auth`'s hook can never see.
+  const [authMod, gateMod] = await Promise.all([
+    import("@/lib/auth"),
+    import("@/server/registration-gate"),
+  ]);
+  return {
+    auth: authMod.auth,
+    runWithRegistrationAllowed: gateMod.runWithRegistrationAllowed,
+  };
 }
 
 describe("email verification enforcement (EMAIL_VERIFICATION_REQUIRED)", () => {
   it("rejects sign-in for an unverified user when required and SMTP is configured", async () => {
     process.env.SMTP_HOST = "smtp.test.invalid";
     process.env.EMAIL_VERIFICATION_REQUIRED = "true";
-    const auth = await freshAuth();
+    const { auth, runWithRegistrationAllowed } = await freshAuth();
 
     await runWithRegistrationAllowed(() =>
       auth.api.signUpEmail({
@@ -97,7 +108,7 @@ describe("email verification enforcement (EMAIL_VERIFICATION_REQUIRED)", () => {
   it("allows sign-in for an unverified user when not required", async () => {
     process.env.SMTP_HOST = "smtp.test.invalid";
     process.env.EMAIL_VERIFICATION_REQUIRED = "false";
-    const auth = await freshAuth();
+    const { auth, runWithRegistrationAllowed } = await freshAuth();
 
     await runWithRegistrationAllowed(() =>
       auth.api.signUpEmail({
@@ -118,7 +129,7 @@ describe("email verification enforcement (EMAIL_VERIFICATION_REQUIRED)", () => {
   it("does not enforce verification when SMTP is not configured, even if the env flag is true", async () => {
     delete process.env.SMTP_HOST;
     process.env.EMAIL_VERIFICATION_REQUIRED = "true";
-    const auth = await freshAuth();
+    const { auth, runWithRegistrationAllowed } = await freshAuth();
 
     await runWithRegistrationAllowed(() =>
       auth.api.signUpEmail({

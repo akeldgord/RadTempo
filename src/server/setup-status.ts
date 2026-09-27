@@ -12,3 +12,19 @@ export async function hasAnyUsers(): Promise<boolean> {
   const rows = await db.select({ value: count() }).from(userTable);
   return (rows[0]?.value ?? 0) > 0;
 }
+
+/**
+ * Whether an operator has configured *any* way to create the initial admin:
+ * either `SETUP_TOKEN` (for the interactive `/setup` wizard) or the
+ * `INITIAL_ADMIN_EMAIL`/`INITIAL_ADMIN_PASSWORD` pair (for scripted
+ * bootstrap). If neither is set, the instance fails closed: `/setup` shows
+ * a message and creation is impossible rather than falling back to an
+ * unauthenticated "first user wins" bypass.
+ */
+export function isSetupConfigured(): boolean {
+  const hasSetupToken = Boolean(process.env.SETUP_TOKEN);
+  const hasInitialAdmin = Boolean(
+    process.env.INITIAL_ADMIN_EMAIL && process.env.INITIAL_ADMIN_PASSWORD,
+  );
+  return hasSetupToken || hasInitialAdmin;
+}
