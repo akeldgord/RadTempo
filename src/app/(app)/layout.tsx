@@ -13,6 +13,10 @@ import { TimerProvider } from "@/components/timer/timer-context";
 import { TimerBar } from "@/components/timer/timer-bar";
 import { KeyboardShortcutsProvider } from "@/components/keyboard-shortcuts-provider";
 
+// Every page under this layout is per-user and reads the database; never
+// prerender at build time (the build has no database).
+export const dynamic = "force-dynamic";
+
 export default async function AppLayout({
   children,
 }: {
