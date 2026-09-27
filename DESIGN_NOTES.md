@@ -162,3 +162,49 @@ All text pairs clear the 4.5:1 AA floor with headroom in both themes; the one UI
 
 - **`src/components/caliper-marker.tsx`:** was animating the SVG `cx` attribute directly (`style={{ transition: "cx 280ms ease-out" }}`), a geometry property that forces layout/paint every frame. Changed to a compositor-only `transform: translateX(...)`: the circle is drawn at its resting `cx={toX}` and given an initial `translateX(fromX - toX)` offset, which then animates to `translateX(0)`. Confirmed the existing global `prefers-reduced-motion` rule (`transition-duration: 0.01ms !important`) still makes it instant, since it targets `transition-duration` generically rather than the `cx` property specifically.
 - **Audit of all other transitions/animations** (`grep` across `src` for `transition`, `animate-`, `@keyframes`): everything else was already compositor-safe or paint-limited-to-small-surfaces — `transition-colors` on buttons/list rows/nav links/viewport-panel hover (small, isolated elements, not full-page repaints), `transition-transform` on a chevron rotate, Radix dialog overlay `fade-in` (opacity only, no content-panel animation), and Recharts' `isAnimationActive={false}` already set on every chart. No scroll-linked motion, no unbounded rAF loops, no animated layout properties (width/height/top/left/margin/padding) found. The single post-case caliper slide remains the only orchestrated motion moment in the app; the timer itself never animates, per spec.
+
+## 8. Verification
+
+Fresh production build (`pnpm build`) against a clean `radtempo_demo_final` Postgres database, seeded deterministically (fixed `mulberry32` seed, `USER_ID`/study-type/tag UUIDs pinned after a real setup+onboarding run) so the headline **CT Abdomen/Pelvis with contrast is exactly 10.0% faster** (comparison median 07:00, recent median 06:18) with an 8-day reading streak and every other favorited study type also trending faster. All 14 pages named in `docs/design/before/` were recaptured at desktop (1440×900) and mobile (375×812), `deviceScaleFactor: 1`, full page, in both light and dark, via Playwright/Chromium, and written to `docs/design/after/<page>-<desktop|mobile>-<light|dark>.png` (56 files, overwritten in place). `start-timer-running` and `post-case-panel` were captured against a live running/just-finished timer (a non-headline study, so the CT A/P +C numbers above stay exact); `setup` was captured against a separate, disposable pre-setup database/instance since `/setup` is unreachable once an admin exists.
+
+Every one of the 56 captures was loaded with `console`/`pageerror` listeners attached and checked for `document.documentElement.scrollWidth > window.innerWidth`.
+
+| Page | Desktop console errs | Desktop overflow | Mobile console errs | Mobile overflow |
+|---|---|---|---|---|
+| login | 0 | no | 0 | no |
+| setup | 0 | no | 0 | no |
+| onboarding | 0 | no | 0 | no |
+| start | 0 | no | 0 | no |
+| start-timer-running | 0 | no | 0 | no |
+| post-case-panel | 0 | no | 0 | no |
+| dashboard | 0 | no | 0 | no |
+| analytics | 0 | no | 0 | no |
+| history | 0 | no | 0 | no |
+| studies | 0 | no | 0 | no |
+| achievements | 0 | no | 0 | no |
+| settings | 0 | no | 0 | no |
+| settings-data | 0 | no | 0 | no |
+| admin | 0 | no | 0 | no |
+
+**Zero console errors and zero horizontal overflow across all 56 desktop/mobile × light/dark combinations.**
+
+Before/after comparisons (`docs/design/compare/<page>-<desktop|mobile>.png`, light vs. light, 28 files, all under 700KB) were built with ffmpeg: crop each full-page shot to the first 1800px (desktop) / 1600px (mobile), pad shorter ones to that height, `hstack`.
+
+Every after screenshot was reviewed directly (all 14 pages at both widths in light, plus dark spot-checks on dashboard, achievements, setup and the timer/post-case states). None looked broken, cramped, low-contrast, or inconsistent with the Reading Room direction. Minor, non-blocking observations: the History and Analytics "Recent cases" tables scroll horizontally within their own container on mobile (by design — the page itself never overflows); the Studies list's up/down/edit/delete icon row sits close to two-line study names on narrow mobile widths but stays legible and tappable.
+
+### What changed — overhaul summary
+
+- **Tokens:** replaced the default-SaaS teal/green `--primary`/`--ring` with a calm PACS-annotation blue (`#2b5c82` light / `#6fa8d8` dark); a dedicated `--caliper` amber reserved only for the benchmark measurement; a blue-graphite dark palette (`#1B2127` film base, `#222A31` viewport, `#34404A` gutter) and an equally-supported light mode (`#EEF2F5`/white), not a re-skinned dark-only theme. Added `--input-border` for WCAG-compliant control boundaries.
+- **Typography:** Atkinson Hyperlegible Next for all UI text, Atkinson Hyperlegible Mono reserved for the running timer and durations, so figures never shift or misread at a glance in a dim reading room.
+- **Layout language:** "Reading Room" — studies as PACS-style viewports in a grid with corner-annotated facts, thin hairline gutters instead of card shadows/borders, and the benchmark drawn as a caliper (a ruled scale with tick marks for previous/recent/this-read pace) rather than a bar or badge.
+- **Per-page highlights:** Start's one-click favorite viewports and frequency/recency lists; Dashboard's per-study caliper grid plus records/streak/achievements strip; Analytics' benchmark-as-caliper header with raw-vs-adjusted trend and a filterable recent-cases table; History as a dense table on desktop and stacked rows on mobile; Studies as a hierarchical modality → body-region list; Achievements as a dated hairline list (deliberately not gamified — no confetti, badges, or leaderboard styling, per the spec's "professional instrument, not a fitness app" tone); Settings/Admin as sectioned hairline layouts with keycap-styled shortcut inputs and severity-differentiated (red/muted) destructive actions.
+- **States:** distinct empty states (no history yet vs. filtered-to-nothing, each with one clear next action), app-segment `loading.tsx`/`error.tsx` skeletons built on a static, non-shimmering `Skeleton` primitive, and a heavier skeleton for the study-detail analytics page.
+- **Accessibility:** skip link to `#main-content`; table captions/`scope="col"` headers on every data table; `--input-border` token so form controls clear the 3:1 non-text-contrast floor; verified focus-visible rings, icon-button `aria-label`s, dialog focus trapping, one `<h1>` per page, accessible text alternatives (`role="img"` + computed labels, `sr-only` summaries + data tables) for the Caliper and trend chart; every color-coded indicator pairs color with an icon or text label. Full contrast table in Step 6 above — all text pairs clear 4.5:1 AA in both themes.
+- **Motion:** the caliper marker's post-case slide now animates a compositor-only `transform` instead of the SVG `cx` attribute; confirmed every other transition is already compositor-safe/paint-limited, no scroll-linked motion or animated layout properties anywhere, and `prefers-reduced-motion` makes everything instant.
+
+### Known gaps
+
+- No automated visual-regression/screenshot-diff test was added; this verification pass was manual (script-driven capture + human review of every image).
+- The Studies list's action-icon row could use slightly more breathing room from wrapped two-line study names at the narrowest mobile widths (375px) — legible and functional today, not a blocking issue.
+- Demo screenshots use synthetic seeded data; no production/real-user screenshots were captured (expected for a pre-launch design pass).
+- `next start` logs a harmless warning that `output: standalone` isn't used by `next start` (the app was still exercised correctly for this verification; a real deployment would run `node .next/standalone/server.js`).
