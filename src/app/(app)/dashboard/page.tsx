@@ -11,6 +11,11 @@ import { Viewport, ViewportGrid } from "@/components/viewport";
 import { Caliper } from "@/components/caliper";
 import { Duration } from "@/components/duration";
 
+const achievementDateFormatter = new Intl.DateTimeFormat("en-US", {
+  month: "short",
+  day: "numeric",
+});
+
 const MATURITY_LABEL: Record<string, string> = {
   NONE: "No history yet",
   EARLY: "Early",
@@ -129,11 +134,6 @@ export default async function DashboardPage() {
             );
           })}
         </ViewportGrid>
-        <div className="mt-3">
-          <Button asChild variant="secondary" size="sm">
-            <Link href="/">Start a case</Link>
-          </Button>
-        </div>
       </section>
 
       <section
@@ -166,44 +166,41 @@ export default async function DashboardPage() {
             {overview.readingDayStreak.current === 1 ? "" : "s"}
           </Duration>
           <p className="text-xs text-muted">
-            reading streak · longest {overview.readingDayStreak.longest} day
+            reading streak
+            <br />
+            longest {overview.readingDayStreak.longest} day
             {overview.readingDayStreak.longest === 1 ? "" : "s"}
           </p>
         </div>
       </section>
 
-      <section aria-label="Personal records">
-        <h2 className="mb-3 text-sm font-semibold text-foreground">
-          Personal records
-        </h2>
-        <div className="grid gap-3 sm:grid-cols-2">
-          <Card>
-            <CardContent className="flex flex-col gap-1 pt-6">
-              <p className="text-xs text-muted">Fastest comparable read</p>
-              <p className="text-md font-semibold text-foreground">
-                {data.personalRecords.fastestEligibleRead
-                  ? formatDuration(
-                      data.personalRecords.fastestEligibleRead.adjustedMs,
-                    )
-                  : "Not established yet"}
-              </p>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardContent className="flex flex-col gap-1 pt-6">
-              <p className="text-xs text-muted">
-                Largest sustained improvement
-              </p>
-              <p className="text-md font-semibold text-foreground">
-                {data.personalRecords.largestSustainedImprovement
-                  ? `${formatPercent(
-                      data.personalRecords.largestSustainedImprovement
-                        .improvement,
-                    )}% faster`
-                  : "Not established yet"}
-              </p>
-            </CardContent>
-          </Card>
+      <section
+        aria-label="Personal records"
+        className="flex flex-wrap gap-x-12 gap-y-4 border-t border-border pt-5"
+      >
+        <div>
+          <Duration className="block text-lg font-medium">
+            {data.personalRecords.fastestEligibleRead
+              ? formatDuration(
+                  data.personalRecords.fastestEligibleRead.adjustedMs,
+                )
+              : "—"}
+          </Duration>
+          <p className="text-xs text-muted">fastest comparable read</p>
+        </div>
+        <div>
+          <Duration className="block text-lg font-medium">
+            {data.personalRecords.largestSustainedImprovement
+              ? `↓ ${formatPercent(
+                  data.personalRecords.largestSustainedImprovement.improvement,
+                )}%`
+              : "—"}
+          </Duration>
+          <p className="text-xs text-muted">
+            {data.personalRecords.largestSustainedImprovement
+              ? "largest sustained improvement"
+              : "no sustained improvement yet"}
+          </p>
         </div>
       </section>
 
@@ -224,21 +221,27 @@ export default async function DashboardPage() {
             No achievements yet — they will appear here as you build a history.
           </p>
         ) : (
-          <ul className="flex flex-col gap-2">
-            {data.recentAchievements.map((a) => (
-              <li key={`${a.key}-${a.studyTypeId ?? "global"}`}>
-                <Card>
-                  <CardContent className="flex flex-col gap-0.5 py-4">
+          <div className="rounded-lg border border-border bg-card">
+            <ul>
+              {data.recentAchievements.map((a) => (
+                <li
+                  key={`${a.key}-${a.studyTypeId ?? "global"}`}
+                  className="flex items-start justify-between gap-4 border-b border-border px-4 py-3 last:border-0 sm:px-5"
+                >
+                  <div>
                     <p className="text-sm font-medium text-foreground">
                       {a.title}
-                      {a.studyName ? ` · ${a.studyName}` : ""}
+                      {a.studyName ? ` for ${a.studyName}` : ""}
                     </p>
                     <p className="text-xs text-muted">{a.description}</p>
-                  </CardContent>
-                </Card>
-              </li>
-            ))}
-          </ul>
+                  </div>
+                  <p className="shrink-0 text-xs text-muted">
+                    {achievementDateFormatter.format(a.earnedAt)}
+                  </p>
+                </li>
+              ))}
+            </ul>
+          </div>
         )}
       </section>
     </div>

@@ -281,6 +281,27 @@ describe("personalRecords", () => {
     );
   });
 
+  it("does not report a negative largest sustained improvement (got slower)", () => {
+    const fast = Array.from({ length: 10 }, (_, i) =>
+      mkCase({
+        studyTypeId: "ct-ap",
+        finishedAt: daysFrom(BASE, i),
+        durationMs: 800_000,
+      }),
+    );
+    const slow = Array.from({ length: 10 }, (_, i) =>
+      mkCase({
+        studyTypeId: "ct-ap",
+        finishedAt: daysFrom(BASE, 10 + i),
+        durationMs: 1_000_000,
+      }),
+    );
+    const cases = [...fast, ...slow];
+    const stats = buildStats(cases);
+    const records = personalRecords(cases, stats, IDENTITY_FACTORS);
+    expect(records.largestSustainedImprovement).toBeNull();
+  });
+
   it("returns null records when there is no data", () => {
     const records = personalRecords([], {}, IDENTITY_FACTORS);
     expect(records.fastestEligibleRead).toBeNull();
