@@ -485,7 +485,12 @@ async function computeFeedbackForEntry(
 ): Promise<PostCaseFeedback> {
   const excluded = await tagsIncludeExcluded(db, summary.tagIds);
   if (excluded) {
-    return { kind: "EXCLUDED", caseNumber: 0, recentPaceMs: null };
+    return {
+      kind: "EXCLUDED",
+      caseNumber: 0,
+      recentPaceMs: null,
+      adjustedDurationMs: null,
+    };
   }
 
   const allCases = await loadUserCases(db, userId);

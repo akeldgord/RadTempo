@@ -72,17 +72,18 @@ export function PostCasePanel() {
         </Button>
       </div>
 
-      {panel.feedback.recentPaceMs !== null && (
-        <div className="max-w-sm">
-          <Caliper
-            className="w-full"
-            recentMs={panel.feedback.recentPaceMs}
-            thisReadMs={panel.entry.activeDurationMs}
-            animateThisRead
-            formatDuration={formatDuration}
-          />
-        </div>
-      )}
+      {panel.feedback.recentPaceMs !== null &&
+        panel.feedback.adjustedDurationMs !== null && (
+          <div className="max-w-sm">
+            <Caliper
+              className="w-full"
+              recentMs={panel.feedback.recentPaceMs}
+              thisReadMs={panel.feedback.adjustedDurationMs}
+              animateThisRead
+              formatDuration={formatDuration}
+            />
+          </div>
+        )}
 
       <div>
         <span className="mb-1.5 block text-xs font-medium text-muted">

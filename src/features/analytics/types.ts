@@ -98,6 +98,12 @@ export interface PostCaseFeedback {
   /** positive = faster than recent pace of prior eligible cases; undefined when not computable */
   percentVsRecent?: number;
   recentPaceMs: number | null;
+  /** The target case's own duration, adjusted for its learned complexity
+   * factor — the *comparable* counterpart to `recentPaceMs`. Only set (and
+   * non-null) for `COMPARISON`; null for BASELINE_STARTED/BASELINE_BUILDING/
+   * EXCLUDED, where there is no comparison to draw. Never the raw duration —
+   * see R1 in DESIGN_NOTES.md "Audit remediation". */
+  adjustedDurationMs: number | null;
 }
 
 export interface ReadingDayStreak {
