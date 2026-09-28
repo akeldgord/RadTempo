@@ -293,7 +293,7 @@ factors are computed — only how already-computed values are surfaced.
 
 ## R3 verification
 
-Final SHA: `a8f4569dbb9f4efa7804a5677a82ab216b246837`.
+Final code SHA: `a8f4569dbb9f4efa7804a5677a82ab216b246837` (later commits on the branch change notes only).
 
 **e2e coverage added.** `e2e/seed.ts` (new): a schema-direct seeding
 helper for history too large to build through the UI in test time —
