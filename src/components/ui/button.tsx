@@ -11,8 +11,13 @@ export const buttonVariants = cva(
         primary: "bg-primary text-primary-foreground hover:opacity-90",
         secondary:
           "bg-card text-foreground border border-border hover:bg-muted-bg",
-        ghost: "hover:bg-muted-bg text-foreground",
-        danger: "bg-danger text-white hover:opacity-90",
+        ghost: "text-foreground hover:bg-muted-bg",
+        /** Solid destructive action — irreversible operations only. */
+        danger: "bg-danger text-danger-foreground hover:opacity-90",
+        /** Quieter destructive treatment for reversible actions (e.g. a
+         * remove-from-list action that can be undone), so severity reads
+         * through weight, not just color. */
+        "danger-outline": "border border-danger text-danger hover:bg-danger/10",
       },
       size: {
         default: "h-10 px-4 py-2",

@@ -506,6 +506,140 @@ describe("postCaseFeedback", () => {
   });
 });
 
+describe("postCaseFeedback adjustedDurationMs (R1)", () => {
+  // Single-study fixture where the learned complexity factors are exact:
+  // 5 EASY @ 5:00 (300_000ms), 10 TYPICAL @ 10:00 (600_000ms), 5 DIFFICULT
+  // @ 20:00 (1_200_000ms). Sorted by duration, the study median falls
+  // inside the TYPICAL block (positions 10-11 of 20), so
+  // studyMedian = 600_000 and every ratio is exact: EASY = 0.5,
+  // TYPICAL = 1, DIFFICULT = 2. Crucially, every prior case's *adjusted*
+  // duration is therefore exactly 600_000ms regardless of its complexity,
+  // so the last-10-priors recent pace is unambiguously 10:00.
+  function buildFactorHistory(): CaseRecord[] {
+    const cases: CaseRecord[] = [];
+    for (let i = 0; i < 5; i++) {
+      cases.push(
+        mkCase({
+          finishedAt: daysFrom(BASE, i),
+          durationMs: 300_000,
+          complexity: "EASY",
+        }),
+      );
+    }
+    for (let i = 0; i < 10; i++) {
+      cases.push(
+        mkCase({
+          finishedAt: daysFrom(BASE, 5 + i),
+          durationMs: 600_000,
+          complexity: "TYPICAL",
+        }),
+      );
+    }
+    for (let i = 0; i < 5; i++) {
+      cases.push(
+        mkCase({
+          finishedAt: daysFrom(BASE, 15 + i),
+          durationMs: 1_200_000,
+          complexity: "DIFFICULT",
+        }),
+      );
+    }
+    return cases;
+  }
+
+  it("learns exact factors EASY=0.5, TYPICAL=1, DIFFICULT=2 from the fixture", () => {
+    const factors = computeComplexityFactors(buildFactorHistory());
+    expect(factors.EASY.factor).toBeCloseTo(0.5, 10);
+    expect(factors.TYPICAL.factor).toBeCloseTo(1, 10);
+    expect(factors.DIFFICULT.factor).toBeCloseTo(2, 10);
+    expect(factors.EASY.provisional).toBe(false);
+    expect(factors.TYPICAL.provisional).toBe(false);
+    expect(factors.DIFFICULT.provisional).toBe(false);
+  });
+
+  it("Difficult raw 15:00 vs recent (adjusted) 10:00 with factor 2 -> adjusted 07:30, 25% faster", () => {
+    const history = buildFactorHistory();
+    const factors = computeComplexityFactors(history);
+
+    const target = mkCase({
+      finishedAt: daysFrom(BASE, 30),
+      durationMs: 900_000, // 15:00 raw
+      complexity: "DIFFICULT",
+    });
+    const fb = postCaseFeedback(target, [...history, target], factors);
+
+    expect(fb.kind).toBe("COMPARISON");
+    expect(fb.recentPaceMs).toBe(600_000); // 10:00, adjusted
+    expect(fb.adjustedDurationMs).toBe(450_000); // 07:30
+    expect(formatDuration(fb.adjustedDurationMs as number)).toBe("07:30");
+    expect(fb.percentVsRecent).toBeCloseTo(0.25, 10);
+    expect(formatFeedbackText(fb)).toBe(
+      "25% faster than your recent comparable pace",
+    );
+  });
+
+  it("Easy raw 06:00 with factor 0.5 -> adjusted 12:00, 20% above recent pace", () => {
+    const history = buildFactorHistory();
+    const factors = computeComplexityFactors(history);
+
+    const target = mkCase({
+      finishedAt: daysFrom(BASE, 30),
+      durationMs: 360_000, // 06:00 raw
+      complexity: "EASY",
+    });
+    const fb = postCaseFeedback(target, [...history, target], factors);
+
+    expect(fb.kind).toBe("COMPARISON");
+    expect(fb.recentPaceMs).toBe(600_000); // 10:00, adjusted
+    expect(fb.adjustedDurationMs).toBe(720_000); // 12:00
+    expect(formatDuration(fb.adjustedDurationMs as number)).toBe("12:00");
+    expect(fb.percentVsRecent).toBeCloseTo(-0.2, 10);
+    expect(formatFeedbackText(fb)).toBe(
+      "20% above your recent comparable pace",
+    );
+  });
+
+  it("reclassifying the same raw duration changes adjustedDurationMs", () => {
+    const history = buildFactorHistory();
+    const factors = computeComplexityFactors(history);
+    const finishedAt = daysFrom(BASE, 30);
+    const rawMs = 600_000;
+
+    const asTypical = postCaseFeedback(
+      mkCase({ finishedAt, durationMs: rawMs, complexity: "TYPICAL" }),
+      [
+        ...history,
+        mkCase({ finishedAt, durationMs: rawMs, complexity: "TYPICAL" }),
+      ],
+      factors,
+    );
+    const target = mkCase({
+      finishedAt,
+      durationMs: rawMs,
+      complexity: "DIFFICULT",
+    });
+    const asDifficult = postCaseFeedback(target, [...history, target], factors);
+
+    expect(asTypical.adjustedDurationMs).toBe(600_000);
+    expect(asDifficult.adjustedDurationMs).toBe(300_000);
+    expect(asDifficult.adjustedDurationMs).not.toBe(
+      asTypical.adjustedDurationMs,
+    );
+  });
+
+  it("BASELINE_STARTED/BASELINE_BUILDING have no adjustedDurationMs (no comparison graphic)", () => {
+    const target = mkCase({ finishedAt: BASE, durationMs: 100_000 });
+    const started = postCaseFeedback(target, [target], IDENTITY_FACTORS);
+    expect(started.adjustedDurationMs).toBeNull();
+
+    const c1 = mkCase({ finishedAt: daysFrom(BASE, 0), durationMs: 100_000 });
+    const c2 = mkCase({ finishedAt: daysFrom(BASE, 1), durationMs: 100_000 });
+    const c3 = mkCase({ finishedAt: daysFrom(BASE, 2), durationMs: 100_000 });
+    const building = postCaseFeedback(c3, [c1, c2, c3], IDENTITY_FACTORS);
+    expect(building.adjustedDurationMs).toBeNull();
+  });
+});
+
 describe("computeOverview and reading day streaks", () => {
   it("computes consecutive UTC day streaks, current relative to now", () => {
     const days = [0, 1, 2, 3, 4]; // 5 consecutive days

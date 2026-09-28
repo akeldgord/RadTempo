@@ -63,7 +63,7 @@ export function TimerBar() {
 
   if (!timer && panel) {
     return (
-      <div className="sticky top-0 z-30 border-b border-border bg-card px-4 py-3 sm:px-6">
+      <div className="sticky top-3 z-30 mx-3 mb-3 rounded-lg border border-border bg-card px-4 py-3 shadow-md sm:mx-6 sm:px-6">
         <PostCasePanel />
       </div>
     );
@@ -91,7 +91,7 @@ export function TimerBar() {
 
   if (minimized) {
     return (
-      <div className="sticky top-0 z-30 flex items-center justify-between gap-3 border-b border-border bg-card px-4 py-1.5 text-sm sm:px-6">
+      <div className="sticky top-3 z-30 mx-3 mb-3 flex items-center justify-between gap-3 rounded-lg border border-border bg-card px-3 py-1.5 text-sm shadow-md sm:mx-6">
         <button
           type="button"
           onClick={() => setMinimized(false)}
@@ -143,7 +143,7 @@ export function TimerBar() {
   }
 
   return (
-    <div className="sticky top-0 z-30 border-b border-border bg-card px-4 py-3 sm:px-6">
+    <div className="sticky top-3 z-30 mx-3 mb-3 rounded-lg border border-border bg-card px-4 py-2.5 shadow-md sm:mx-6 sm:px-5">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="flex items-center gap-3">
           <div className="flex flex-col">

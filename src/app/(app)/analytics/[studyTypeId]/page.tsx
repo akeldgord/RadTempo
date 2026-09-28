@@ -5,11 +5,14 @@ import { requireUser } from "@/server/auth-helpers";
 import { getStudyAnalytics } from "@/features/analytics/service";
 import { formatDuration, formatPercent } from "@/features/analytics/engine";
 import { NotFoundError } from "@/server/errors";
-import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { PageHeader } from "@/components/page-header";
+import { Duration } from "@/components/duration";
+import { CaliperPanel } from "@/components/analytics/caliper-panel";
 import { StartStudyButton } from "@/components/analytics/start-study-button";
 import { TrendChart } from "@/components/analytics/trend-chart";
 import { ComplexityDistributionBars } from "@/components/analytics/complexity-distribution";
+import { COMPLEXITY_LABEL } from "@/features/analytics/types";
 
 const MATURITY_LABEL: Record<string, string> = {
   NONE: "No history yet",
@@ -31,6 +34,9 @@ function parseDate(value?: string): Date | undefined {
   const d = new Date(value);
   return Number.isNaN(d.getTime()) ? undefined : d;
 }
+
+const fieldClass =
+  "h-9 rounded-md border border-input-border bg-card px-2 text-sm text-foreground";
 
 export default async function StudyAnalyticsPage({
   params,
@@ -81,93 +87,107 @@ export default async function StudyAnalyticsPage({
           >
             ← Dashboard
           </Link>
-          <h1 className="mt-1 text-2xl font-semibold text-foreground">
-            {data.studyName}
-          </h1>
-          <p className="text-sm text-muted">
-            Personal benchmark for this study type. Always computed from all of
-            your eligible history, regardless of the filters below.
-          </p>
+          <PageHeader
+            className="mt-1"
+            title={data.studyName}
+            subtitle="Personal benchmark for this study type. Always computed from all of your eligible history, regardless of the filters below."
+          />
         </div>
         <StartStudyButton studyTypeId={data.studyTypeId} />
       </div>
 
       <section
         aria-label="Benchmark"
-        className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4"
+        className="rounded-lg border border-border bg-card p-5 sm:p-6"
       >
-        <Card>
-          <CardContent className="flex flex-col gap-1 pt-6">
-            <p className="text-xs uppercase tracking-wide text-muted">
-              Personal benchmark (recent pace)
-            </p>
-            <p className="text-2xl font-semibold text-foreground">
-              {stats.benchmarkMs !== null
-                ? formatDuration(stats.benchmarkMs)
-                : "—"}
-            </p>
-            <p className="text-xs text-muted">
-              {MATURITY_LABEL[stats.maturity]}
-            </p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="flex flex-col gap-1 pt-6">
-            <p className="text-xs uppercase tracking-wide text-muted">
-              Previous pace
-            </p>
-            <p className="text-2xl font-semibold text-foreground">
-              {stats.comparisonPaceMs !== null
-                ? formatDuration(stats.comparisonPaceMs)
-                : "—"}
-            </p>
-            {stats.improvement !== null && (
-              <p className="text-xs text-muted">
-                {stats.improvement >= 0
-                  ? `${formatPercent(stats.improvement)}% faster than previous pace`
-                  : `${formatPercent(Math.abs(stats.improvement))}% above previous pace`}
-              </p>
-            )}
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="flex flex-col gap-1 pt-6">
-            <p className="text-xs uppercase tracking-wide text-muted">
-              Personal best (adjusted)
-            </p>
-            <p className="text-2xl font-semibold text-foreground">
-              {stats.personalBestMs.adjusted !== null
-                ? formatDuration(stats.personalBestMs.adjusted)
-                : "—"}
-            </p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="flex flex-col gap-1 pt-6">
-            <p className="text-xs uppercase tracking-wide text-muted">
-              Timed cases/hour
-            </p>
-            <p className="text-2xl font-semibold text-foreground">
-              {stats.casesPerHour !== null
-                ? stats.casesPerHour.toFixed(1)
-                : "—"}
-            </p>
-            <p className="text-xs text-muted">
-              {stats.totalCount} total · {stats.eligibleCount} comparable
-              {stats.excludedCount > 0
-                ? ` · ${stats.excludedCount} excluded`
-                : ""}
-            </p>
-          </CardContent>
-        </Card>
-      </section>
+        {stats.recentPaceMs !== null ? (
+          <CaliperPanel
+            // Capped so the hero caliper still fills available width on
+            // typical viewports (per R6) but stops growing past a wide
+            // desktop panel's width — the SVG's tick/label text scales
+            // uniformly with its rendered width (see caliper.tsx's
+            // aspect-ratio comment), so letting it stretch edge-to-edge
+            // on very wide screens (1440px+) blew the text up to the
+            // point of overlapping the panel below it. See DESIGN_NOTES.md
+            // "R3 verification".
+            className="mb-8 w-full max-w-xl"
+            size="lg"
+            recentMs={stats.recentPaceMs}
+            previousMs={stats.comparisonPaceMs}
+          />
+        ) : (
+          <p className="mb-6 text-sm text-muted">
+            {MATURITY_LABEL[stats.maturity]} — not enough history yet to draw a
+            measurement.
+          </p>
+        )}
 
-      {data.personalPercentile !== null && (
-        <p className="text-sm text-muted">
-          Faster than {formatPercent(data.personalPercentile)}% of your prior
-          comparable reads.
-        </p>
-      )}
+        <dl className="grid grid-cols-2 gap-x-6 gap-y-5 sm:grid-cols-4">
+          <div>
+            <dt className="text-xs text-muted">Benchmark (recent pace)</dt>
+            <dd>
+              <Duration className="text-2xl font-medium">
+                {stats.benchmarkMs !== null
+                  ? formatDuration(stats.benchmarkMs)
+                  : "—"}
+              </Duration>
+              <p className="text-2xs text-muted">
+                {MATURITY_LABEL[stats.maturity]}
+              </p>
+            </dd>
+          </div>
+          <div>
+            <dt className="text-xs text-muted">Previous pace</dt>
+            <dd>
+              <Duration className="text-2xl font-medium">
+                {stats.comparisonPaceMs !== null
+                  ? formatDuration(stats.comparisonPaceMs)
+                  : "—"}
+              </Duration>
+              {stats.improvement !== null && (
+                <p className="text-2xs text-caliper">
+                  {stats.improvement >= 0
+                    ? `↓ ${formatPercent(stats.improvement)}% faster`
+                    : `↑ ${formatPercent(Math.abs(stats.improvement))}% above`}
+                </p>
+              )}
+            </dd>
+          </div>
+          <div>
+            <dt className="text-xs text-muted">Personal best (adjusted)</dt>
+            <dd>
+              <Duration className="text-2xl font-medium">
+                {stats.personalBestMs.adjusted !== null
+                  ? formatDuration(stats.personalBestMs.adjusted)
+                  : "—"}
+              </Duration>
+            </dd>
+          </div>
+          <div>
+            <dt className="text-xs text-muted">Timed cases/hour</dt>
+            <dd>
+              <Duration className="text-2xl font-medium">
+                {stats.casesPerHour !== null
+                  ? stats.casesPerHour.toFixed(1)
+                  : "—"}
+              </Duration>
+              <p className="text-2xs text-muted">
+                {stats.totalCount} total, {stats.eligibleCount} comparable
+                {stats.excludedCount > 0
+                  ? `, ${stats.excludedCount} excluded`
+                  : ""}
+              </p>
+            </dd>
+          </div>
+        </dl>
+
+        {data.personalPercentile !== null && (
+          <p className="mt-5 border-t border-border pt-4 text-sm text-muted">
+            Faster than {formatPercent(data.personalPercentile)}% of your prior
+            comparable reads.
+          </p>
+        )}
+      </section>
 
       <section aria-label="Raw and complexity-adjusted trend">
         <h2 className="mb-3 text-sm font-semibold text-foreground">
@@ -198,7 +218,7 @@ export default async function StudyAnalyticsPage({
         </h2>
         <form
           method="get"
-          className="flex flex-wrap items-end gap-3 rounded-md border border-border bg-card p-4"
+          className="flex flex-wrap items-end gap-3 rounded-md border border-border bg-card p-3"
         >
           <label className="flex flex-col gap-1 text-sm">
             <span className="text-xs text-muted">From</span>
@@ -206,7 +226,7 @@ export default async function StudyAnalyticsPage({
               type="date"
               name="from"
               defaultValue={sp.from ?? ""}
-              className="h-9 rounded-md border border-border bg-card px-2 text-sm text-foreground"
+              className={fieldClass}
             />
           </label>
           <label className="flex flex-col gap-1 text-sm">
@@ -215,7 +235,7 @@ export default async function StudyAnalyticsPage({
               type="date"
               name="to"
               defaultValue={sp.to ?? ""}
-              className="h-9 rounded-md border border-border bg-card px-2 text-sm text-foreground"
+              className={fieldClass}
             />
           </label>
           <label className="flex flex-col gap-1 text-sm">
@@ -223,7 +243,7 @@ export default async function StudyAnalyticsPage({
             <select
               name="complexity"
               defaultValue={sp.complexity ?? ""}
-              className="h-9 rounded-md border border-border bg-card px-2 text-sm text-foreground"
+              className={fieldClass}
             >
               <option value="">Any</option>
               <option value="EASY">Easy</option>
@@ -232,11 +252,11 @@ export default async function StudyAnalyticsPage({
             </select>
           </label>
           <label className="flex flex-col gap-1 text-sm">
-            <span className="text-xs text-muted">Included in benchmark</span>
+            <span className="text-xs text-muted">Included</span>
             <select
               name="included"
               defaultValue={sp.included ?? ""}
-              className="h-9 rounded-md border border-border bg-card px-2 text-sm text-foreground"
+              className={fieldClass}
             >
               <option value="">Any</option>
               <option value="true">Included only</option>
@@ -248,7 +268,7 @@ export default async function StudyAnalyticsPage({
             <select
               name="tagId"
               defaultValue={sp.tagId ?? ""}
-              className="h-9 rounded-md border border-border bg-card px-2 text-sm text-foreground"
+              className={fieldClass}
             >
               <option value="">Any</option>
               {data.availableTags.map((t) => (
@@ -281,18 +301,21 @@ export default async function StudyAnalyticsPage({
             No cases match these filters yet.
           </p>
         ) : (
-          <div className="overflow-x-auto">
+          <div className="overflow-x-auto rounded-md border border-border">
             <table className="w-full text-left text-sm">
+              <caption className="sr-only">
+                Recent cases for {data.studyName}
+              </caption>
               <thead>
                 <tr className="border-b border-border text-muted">
-                  <th scope="col" className="py-2 pr-4 font-medium">
+                  <th scope="col" className="py-2 pl-3 pr-4 font-medium">
                     Date
                   </th>
                   <th scope="col" className="py-2 pr-4 font-medium">
-                    Duration (raw)
+                    Raw
                   </th>
                   <th scope="col" className="py-2 pr-4 font-medium">
-                    Duration (adjusted)
+                    Adjusted
                   </th>
                   <th scope="col" className="py-2 pr-4 font-medium">
                     Complexity
@@ -301,10 +324,10 @@ export default async function StudyAnalyticsPage({
                     Tags
                   </th>
                   <th scope="col" className="py-2 pr-4 font-medium">
-                    Included?
+                    Status
                   </th>
-                  <th scope="col" className="py-2 font-medium">
-                    Personal percentile
+                  <th scope="col" className="py-2 pr-3 font-medium">
+                    Percentile
                   </th>
                 </tr>
               </thead>
@@ -314,29 +337,40 @@ export default async function StudyAnalyticsPage({
                     key={c.id}
                     className="border-b border-border last:border-0"
                   >
-                    <td className="py-2 pr-4 text-foreground">
+                    <td className="py-2 pl-3 pr-4 text-foreground">
                       {c.finishedAt.toLocaleString()}
                     </td>
-                    <td className="py-2 pr-4 text-foreground">
-                      {formatDuration(c.rawDurationMs)}
+                    <td className="py-2 pr-4">
+                      <Duration className="text-foreground">
+                        {formatDuration(c.rawDurationMs)}
+                      </Duration>
+                    </td>
+                    <td className="py-2 pr-4">
+                      <Duration className="text-foreground">
+                        {formatDuration(c.adjustedDurationMs)}
+                      </Duration>
                     </td>
                     <td className="py-2 pr-4 text-foreground">
-                      {formatDuration(c.adjustedDurationMs)}
-                    </td>
-                    <td className="py-2 pr-4 text-foreground">
-                      {c.complexity}
+                      {COMPLEXITY_LABEL[c.complexity]}
                     </td>
                     <td className="py-2 pr-4 text-foreground">
                       {c.tagNames.length > 0 ? c.tagNames.join(", ") : "—"}
                     </td>
                     <td className="py-2 pr-4 text-foreground">
-                      {c.excluded
-                        ? `Excluded${c.excludingTagNames.length > 0 ? ` (${c.excludingTagNames.join(", ")})` : ""}`
-                        : "Included"}
+                      {c.excluded ? (
+                        <span className="text-muted">
+                          Excluded
+                          {c.excludingTagNames.length > 0
+                            ? ` (${c.excludingTagNames.join(", ")})`
+                            : ""}
+                        </span>
+                      ) : (
+                        "Included"
+                      )}
                     </td>
-                    <td className="py-2 text-foreground">
+                    <td className="py-2 pr-3 text-foreground">
                       {c.personalPercentile !== null
-                        ? `Faster than ${formatPercent(c.personalPercentile)}% of your prior comparable reads`
+                        ? `Faster than ${formatPercent(c.personalPercentile)}%`
                         : "—"}
                     </td>
                   </tr>

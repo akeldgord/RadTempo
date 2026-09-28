@@ -7,6 +7,8 @@ import type { Tag } from "@/features/tags/service";
 import type { Complexity } from "@/features/analytics/types";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Caliper } from "@/components/caliper";
+import { formatDuration } from "@/features/analytics/engine";
 import { AchievementToast } from "@/components/achievements/achievement-toast";
 
 const COMPLEXITIES: { value: Complexity; label: string }[] = [
@@ -58,20 +60,33 @@ export function PostCasePanel() {
 
   return (
     <div className="flex flex-col gap-3">
-      <div className="flex flex-wrap items-center justify-between gap-2">
+      <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
-          <p className="text-sm font-medium text-foreground">
+          <p className="text-lg font-semibold text-foreground">
             Completed in {panel.durationText}
           </p>
-          <p className="text-sm text-muted">{panel.feedbackText}</p>
+          <p className="mt-0.5 text-sm text-muted">{panel.feedbackText}</p>
         </div>
         <Button type="button" size="sm" onClick={closePanel}>
           Done
         </Button>
       </div>
 
+      {panel.feedback.recentPaceMs !== null &&
+        panel.feedback.adjustedDurationMs !== null && (
+          <div className="max-w-sm">
+            <Caliper
+              className="w-full"
+              recentMs={panel.feedback.recentPaceMs}
+              thisReadMs={panel.feedback.adjustedDurationMs}
+              animateThisRead
+              formatDuration={formatDuration}
+            />
+          </div>
+        )}
+
       <div>
-        <span className="mb-1.5 block text-xs font-medium uppercase tracking-wide text-muted">
+        <span className="mb-1.5 block text-xs font-medium text-muted">
           Complexity
         </span>
         <div
@@ -102,7 +117,7 @@ export function PostCasePanel() {
       </div>
 
       <div>
-        <span className="mb-1.5 block text-xs font-medium uppercase tracking-wide text-muted">
+        <span className="mb-1.5 block text-xs font-medium text-muted">
           Tags
         </span>
         <div className="flex flex-wrap items-center gap-2">

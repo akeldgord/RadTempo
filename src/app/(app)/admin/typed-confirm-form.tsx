@@ -32,7 +32,7 @@ export function TypedConfirmForm<T extends object = Record<string, never>>({
   triggerLabel: string;
   submitLabel: string;
   description?: string;
-  variant?: "danger" | "secondary";
+  variant?: "danger" | "danger-outline" | "secondary";
   onSuccess?: (result: ActionResult<T> & { ok: true }) => void;
 }) {
   const [open, setOpen] = useState(false);

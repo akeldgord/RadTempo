@@ -1,13 +1,6 @@
 "use client";
 
 import { useActionState, useState } from "react";
-import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-  CardDescription,
-} from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -22,6 +15,7 @@ import {
   deleteUserAction,
 } from "@/features/admin/actions";
 import { TypedConfirmForm } from "./typed-confirm-form";
+import { Section } from "./section";
 
 function OneTimeSecret({
   label,
@@ -81,7 +75,7 @@ function CreateUserForm() {
           id="new-user-role"
           name="role"
           defaultValue="USER"
-          className="h-10 rounded-md border border-border bg-card px-3 text-sm text-foreground"
+          className="h-10 rounded-md border border-input-border bg-card px-3 text-sm text-foreground"
         >
           <option value="USER">User</option>
           <option value="ADMIN">Admin</option>
@@ -150,6 +144,7 @@ function RoleToggle({
         triggerLabel="Demote to user"
         submitLabel="Demote"
         description="You are demoting your own admin account."
+        variant="danger-outline"
       />
     );
   }
@@ -158,7 +153,12 @@ function RoleToggle({
     <form action={formAction}>
       <input type="hidden" name="userId" value={user.id} />
       <input type="hidden" name="role" value={nextRole} />
-      <Button type="submit" variant="secondary" size="sm" disabled={pending}>
+      <Button
+        type="submit"
+        variant={nextRole === "ADMIN" ? "secondary" : "danger-outline"}
+        size="sm"
+        disabled={pending}
+      >
         {pending
           ? "Working..."
           : nextRole === "ADMIN"
@@ -179,7 +179,7 @@ function DisableToggle({ user }: { user: AdminUserSummary }) {
       <input type="hidden" name="disabled" value={String(nextDisabled)} />
       <Button
         type="submit"
-        variant={nextDisabled ? "danger" : "secondary"}
+        variant={nextDisabled ? "danger-outline" : "secondary"}
         size="sm"
         disabled={pending}
       >
@@ -261,31 +261,31 @@ export function UsersSection({
   appUrl: string;
 }) {
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>Users</CardTitle>
-        <CardDescription>
-          Account metadata only. No user&apos;s performance or timing data is
-          ever shown here.
-        </CardDescription>
-      </CardHeader>
-      <CardContent className="flex flex-col gap-6">
-        <div className="flex flex-col gap-3">
-          <h3 className="text-sm font-semibold text-foreground">Create user</h3>
-          <CreateUserForm />
-        </div>
+    <Section
+      title="Users"
+      description="Account metadata only. No user's performance or timing data is ever shown here."
+    >
+      <div className="flex flex-col gap-3">
+        <h3 className="text-sm font-semibold text-foreground">Create user</h3>
+        <CreateUserForm />
+      </div>
 
-        <div className="flex flex-col gap-3">
-          <h3 className="text-sm font-semibold text-foreground">Invite user</h3>
-          <InviteForm appUrl={appUrl} />
-        </div>
+      <div className="flex flex-col gap-3 border-t border-border pt-4">
+        <h3 className="text-sm font-semibold text-foreground">Invite user</h3>
+        <InviteForm appUrl={appUrl} />
+      </div>
 
-        {invites.length > 0 && (
-          <div className="flex flex-col gap-3">
-            <h3 className="text-sm font-semibold text-foreground">
-              Pending invites
-            </h3>
+      {invites.length > 0 && (
+        <div className="flex flex-col gap-3 border-t border-border pt-4">
+          <h3 className="text-sm font-semibold text-foreground">
+            Pending invites
+          </h3>
+          {/* `relative`: containing block for the sr-only caption below,
+              so it doesn't escape this container's own horizontal scroll
+              clipping. See DESIGN_NOTES.md "R3 verification". */}
+          <div className="relative overflow-x-auto">
             <table className="w-full text-left text-sm">
+              <caption className="sr-only">Pending invites</caption>
               <thead>
                 <tr className="border-b border-border text-muted">
                   <th scope="col" className="py-2 pr-4 font-medium">
@@ -314,11 +314,17 @@ export function UsersSection({
               </tbody>
             </table>
           </div>
-        )}
+        </div>
+      )}
 
-        <div className="flex flex-col gap-3">
-          <h3 className="text-sm font-semibold text-foreground">All users</h3>
+      <div className="flex flex-col gap-3 border-t border-border pt-4">
+        <h3 className="text-sm font-semibold text-foreground">All users</h3>
+
+        {/* Desktop / tablet: table, scrolls within its own container.
+            `relative`: containing block for the sr-only caption below. */}
+        <div className="relative hidden overflow-x-auto sm:block">
           <table className="w-full text-left text-sm">
+            <caption className="sr-only">All users</caption>
             <thead>
               <tr className="border-b border-border text-muted">
                 <th scope="col" className="py-2 pr-4 font-medium">
@@ -374,7 +380,35 @@ export function UsersSection({
             </tbody>
           </table>
         </div>
-      </CardContent>
-    </Card>
+
+        {/* Mobile: stacked cards instead of a horizontally-scrolling table. */}
+        <ul className="flex flex-col divide-y divide-border border-y border-border sm:hidden">
+          {users.map((user) => (
+            <li key={user.id} className="flex flex-col gap-2 py-3">
+              <div>
+                <p className="text-sm font-medium text-foreground">
+                  {user.email}
+                </p>
+                <p className="text-xs text-muted">
+                  {user.name}, {user.role.toLowerCase()}
+                </p>
+                <p className="text-xs text-muted">
+                  {user.disabledAt ? "Disabled" : "Active"},{" "}
+                  {user.lastSessionAt
+                    ? `last seen ${user.lastSessionAt.toLocaleDateString()}`
+                    : "never signed in"}
+                </p>
+              </div>
+              <div className="flex flex-wrap gap-2">
+                <RoleToggle user={user} currentAdminId={currentAdminId} />
+                <DisableToggle user={user} />
+                <ResetCredentials user={user} />
+                <DeleteUser user={user} currentAdminId={currentAdminId} />
+              </div>
+            </li>
+          ))}
+        </ul>
+      </div>
+    </Section>
   );
 }

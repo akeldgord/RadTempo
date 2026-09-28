@@ -7,8 +7,8 @@ import {
 } from "@/features/preferences/actions";
 import { useKeyboardShortcuts } from "@/components/keyboard-shortcuts-provider";
 import type { KeyboardShortcuts } from "@/features/preferences/service";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Section } from "./section";
 
 type SingleShortcutField =
   "openStudyPicker" | "pauseResume" | "finish" | "hideShowTimer";
@@ -81,58 +81,50 @@ export function ShortcutsSection({
   }
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>Keyboard shortcuts</CardTitle>
-      </CardHeader>
-      <CardContent className="flex flex-col gap-3 pt-0">
-        {(Object.keys(FIELD_LABELS) as SingleShortcutField[]).map((field) => (
-          <div key={field} className="flex items-center justify-between gap-3">
-            <span className="text-sm text-foreground">
-              {FIELD_LABELS[field]}
-            </span>
-            <button
-              type="button"
-              onKeyDown={(e) => {
-                if (capturingField === field) handleCapture(field, e);
-              }}
-              onClick={() => setCapturingField(field)}
-              onBlur={() => setCapturingField(null)}
-              className={`min-w-24 rounded-md border px-3 py-1.5 text-sm font-mono focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${
-                capturingField === field
-                  ? "border-primary bg-accent text-primary"
-                  : "border-border bg-card text-foreground hover:bg-muted-bg"
-              }`}
-            >
-              {capturingField === field
-                ? "Press a key..."
-                : shortcuts[field] === " "
-                  ? "Space"
-                  : shortcuts[field]}
-            </button>
-          </div>
-        ))}
-        <p className="text-xs text-muted">
-          Start favorite study N:{" "}
-          {shortcuts.startFavorite.slice(0, 9).join(", ")}
-        </p>
-        {error && (
-          <p role="alert" className="text-sm text-danger">
-            {error}
-          </p>
-        )}
-        <div>
-          <Button
+    <Section title="Keyboard shortcuts">
+      {(Object.keys(FIELD_LABELS) as SingleShortcutField[]).map((field) => (
+        <div key={field} className="flex items-center justify-between gap-3">
+          <span className="text-sm text-foreground">{FIELD_LABELS[field]}</span>
+          <button
             type="button"
-            variant="secondary"
-            size="sm"
-            onClick={handleReset}
-            disabled={saving}
+            onKeyDown={(e) => {
+              if (capturingField === field) handleCapture(field, e);
+            }}
+            onClick={() => setCapturingField(field)}
+            onBlur={() => setCapturingField(null)}
+            className={`min-w-16 rounded-md border px-3 py-1.5 text-center font-mono text-sm shadow-[0_2px_0_var(--border)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${
+              capturingField === field
+                ? "border-primary bg-accent text-primary shadow-none"
+                : "border-border bg-card text-foreground hover:bg-muted-bg"
+            }`}
           >
-            Reset to defaults
-          </Button>
+            {capturingField === field
+              ? "Press a key…"
+              : shortcuts[field] === " "
+                ? "Space"
+                : shortcuts[field]}
+          </button>
         </div>
-      </CardContent>
-    </Card>
+      ))}
+      <p className="text-xs text-muted">
+        Start favorite study N: {shortcuts.startFavorite.slice(0, 9).join(", ")}
+      </p>
+      {error && (
+        <p role="alert" className="text-sm text-danger">
+          {error}
+        </p>
+      )}
+      <div>
+        <Button
+          type="button"
+          variant="secondary"
+          size="sm"
+          onClick={handleReset}
+          disabled={saving}
+        >
+          Reset to defaults
+        </Button>
+      </div>
+    </Section>
   );
 }

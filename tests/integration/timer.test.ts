@@ -598,6 +598,11 @@ describe("post-case feedback recompute", () => {
       asTypical.feedback.percentVsRecent,
     );
     expect(asDifficult.feedbackText).not.toBe(asTypical.feedbackText);
+
+    // R1: reclassification changes the *adjusted* value fed to the
+    // comparison graphic (never the raw 100s duration).
+    expect(asTypical.feedback.adjustedDurationMs).toBe(100_000);
+    expect(asDifficult.feedback.adjustedDurationMs).toBe(50_000);
   });
 
   it("tagging with an exclude-from-benchmark tag (Interrupted) recomputes feedback as EXCLUDED, with no comparison", async () => {
@@ -615,6 +620,7 @@ describe("post-case feedback recompute", () => {
       timer.id,
     );
     expect(initialFeedback.kind).toBe("BASELINE_STARTED");
+    expect(initialFeedback.adjustedDurationMs).toBeNull();
 
     const result = await timerService.classifyEntry(db, userId, timer.id, {
       tagIds: [interrupted.id],
@@ -622,6 +628,8 @@ describe("post-case feedback recompute", () => {
 
     expect(result.feedback.kind).toBe("EXCLUDED");
     expect(result.feedbackText).toBe("Not included in your personal benchmark");
+    // R1: an excluded case has no comparison graphic — no adjusted value.
+    expect(result.feedback.adjustedDurationMs).toBeNull();
 
     // Removing the tag again recomputes non-excluded feedback.
     const untagged = await timerService.classifyEntry(db, userId, timer.id, {

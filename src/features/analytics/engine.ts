@@ -343,11 +343,21 @@ export function postCaseFeedback(
   const priorEligible = priorCases.filter(isEligible);
 
   if (priorEligible.length === 0) {
-    return { kind: "BASELINE_STARTED", caseNumber, recentPaceMs: null };
+    return {
+      kind: "BASELINE_STARTED",
+      caseNumber,
+      recentPaceMs: null,
+      adjustedDurationMs: null,
+    };
   }
 
   if (priorEligible.length < MIN_STUDY_N) {
-    return { kind: "BASELINE_BUILDING", caseNumber, recentPaceMs: null };
+    return {
+      kind: "BASELINE_BUILDING",
+      caseNumber,
+      recentPaceMs: null,
+      adjustedDurationMs: null,
+    };
   }
 
   const recentPriorSlice = priorEligible.slice(
@@ -367,6 +377,7 @@ export function postCaseFeedback(
     caseNumber,
     percentVsRecent,
     recentPaceMs,
+    adjustedDurationMs: targetAdjusted,
   };
 }
 

@@ -154,7 +154,11 @@ export function personalRecords(
   let largestSustainedImprovement: PersonalRecords["largestSustainedImprovement"] =
     null;
   for (const [studyTypeId, stats] of Object.entries(statsByStudy)) {
-    if (stats.maturity !== "ESTABLISHED" || stats.improvement === null)
+    if (
+      stats.maturity !== "ESTABLISHED" ||
+      stats.improvement === null ||
+      stats.improvement <= 0
+    )
       continue;
     if (
       largestSustainedImprovement === null ||

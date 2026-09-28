@@ -1,16 +1,10 @@
 "use client";
 
 import { useActionState } from "react";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { setMaintenanceModeAction } from "@/features/admin/actions";
 import type { MigrationStatus } from "@/features/admin/system";
+import { Section } from "./section";
 
 function formatBytes(bytes: number | null): string {
   if (bytes == null) return "Unknown";
@@ -43,12 +37,8 @@ export function SystemSection({
   );
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>System</CardTitle>
-        <CardDescription>Instance health, at a glance.</CardDescription>
-      </CardHeader>
-      <CardContent className="flex flex-col gap-2 text-sm text-foreground">
+    <Section title="System" description="Instance health, at a glance.">
+      <div className="flex flex-col gap-2 text-sm text-foreground">
         <p>
           App version: <span className="font-medium">{appVersion}</span>
         </p>
@@ -70,31 +60,24 @@ export function SystemSection({
           Database size:{" "}
           <span className="font-medium">{formatBytes(dbSizeBytes)}</span>
         </p>
-        <form
-          action={formAction}
-          className="mt-2 flex items-center gap-3 border-t border-border pt-3"
-        >
-          <input
-            type="hidden"
-            name="maintenanceMode"
-            value={String(!maintenanceMode)}
-          />
-          <span>
-            Maintenance mode:{" "}
-            <span className="font-medium">
-              {maintenanceMode ? "On" : "Off"}
-            </span>
-          </span>
-          <Button
-            type="submit"
-            variant={maintenanceMode ? "secondary" : "danger"}
-            size="sm"
-            disabled={pending}
-          >
-            {pending ? "Working..." : maintenanceMode ? "Turn off" : "Turn on"}
-          </Button>
-        </form>
-      </CardContent>
-    </Card>
+      </div>
+      <form
+        action={formAction}
+        className="flex items-center gap-3 border-t border-border pt-4"
+      >
+        <input
+          type="hidden"
+          name="maintenanceMode"
+          value={String(!maintenanceMode)}
+        />
+        <span className="text-sm text-foreground">
+          Maintenance mode is currently{" "}
+          <span className="font-medium">{maintenanceMode ? "on" : "off"}</span>.
+        </span>
+        <Button type="submit" variant="secondary" size="sm" disabled={pending}>
+          {pending ? "Working..." : maintenanceMode ? "Turn off" : "Turn on"}
+        </Button>
+      </form>
+    </Section>
   );
 }

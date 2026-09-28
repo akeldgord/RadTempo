@@ -117,7 +117,7 @@ Nothing here is compared between radiologists. There is no leaderboard, departme
 ## Quick start
 
 ```bash
-git clone <this repository>
+git clone https://github.com/akeldgord/RadTempo.git
 cd RadTempo
 cp .env.example .env
 ```

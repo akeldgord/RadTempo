@@ -2,13 +2,57 @@
 
 import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Star, Search } from "lucide-react";
+import { Search } from "lucide-react";
 import { useTimer } from "@/components/timer/timer-context";
 import type { HomeSections, StudyType } from "@/features/studies/service";
 import { Input } from "@/components/ui/input";
-import { Button } from "@/components/ui/button";
+import { PageHeader } from "@/components/page-header";
+import { Viewport, ViewportGrid } from "@/components/viewport";
+import { cn } from "@/lib/utils";
 
-function StudyButton({
+/** A large one-click hanging-protocol tile for a favorite study type: the
+ * name top-left, the short code bottom-right, the way a DICOM viewport
+ * corner-annotates its series. */
+function FavoriteTile({
+  study,
+  disabled,
+  onStart,
+}: {
+  study: StudyType;
+  disabled: boolean;
+  onStart: (id: string) => void;
+}) {
+  return (
+    <Viewport
+      compact
+      className={cn(
+        "min-w-36 flex-1 basis-36 text-left transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring",
+        disabled
+          ? "cursor-not-allowed opacity-50"
+          : "cursor-pointer hover:bg-muted-bg",
+      )}
+      role="button"
+      tabIndex={disabled ? -1 : 0}
+      aria-disabled={disabled}
+      onClick={() => !disabled && onStart(study.id)}
+      onKeyDown={(e) => {
+        if (disabled) return;
+        if (e.key === "Enter" || e.key === " ") {
+          e.preventDefault();
+          onStart(study.id);
+        }
+      }}
+      topLeft={study.name}
+      bottomRight={
+        <span className="text-xs text-muted">{study.shortName}</span>
+      }
+    />
+  );
+}
+
+/** A quieter list row for frequent/recent studies — one line, no card
+ * chrome, the short code trailing the name. */
+function StudyRow({
   study,
   disabled,
   onStart,
@@ -22,20 +66,36 @@ function StudyButton({
       type="button"
       disabled={disabled}
       onClick={() => onStart(study.id)}
-      className="flex w-full items-center justify-between gap-2 rounded-md border border-border bg-card px-3 py-2.5 text-left text-sm transition-colors hover:bg-muted-bg disabled:cursor-not-allowed disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+      className="flex w-full items-center justify-between gap-3 py-2.5 text-left transition-colors hover:text-primary disabled:cursor-not-allowed disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
     >
-      <span className="font-medium text-foreground">{study.name}</span>
-      <span className="flex items-center gap-1.5 text-xs text-muted">
-        {study.favorite && (
-          <Star
-            size={12}
-            className="fill-current text-primary"
-            aria-hidden="true"
-          />
-        )}
-        {study.shortName}
-      </span>
+      <span className="text-sm font-medium text-foreground">{study.name}</span>
+      <span className="shrink-0 text-xs text-muted">{study.shortName}</span>
     </button>
+  );
+}
+
+function StudyRowList({
+  studies,
+  disabled,
+  pendingId,
+  onStart,
+}: {
+  studies: StudyType[];
+  disabled: boolean;
+  pendingId: string | null;
+  onStart: (id: string) => void;
+}) {
+  return (
+    <div className="flex flex-col divide-y divide-border">
+      {studies.map((s) => (
+        <StudyRow
+          key={s.id}
+          study={s}
+          disabled={disabled || pendingId === s.id}
+          onStart={onStart}
+        />
+      ))}
+    </div>
   );
 }
 
@@ -78,15 +138,13 @@ export function StartPageClient({ sections }: { sections: HomeSections }) {
 
   return (
     <div className="flex flex-col gap-8">
-      <div>
-        <h1 className="text-2xl font-semibold text-foreground">Start</h1>
-        <p className="text-sm text-muted">
-          Select a study type to begin a timed read.
-        </p>
-      </div>
+      <PageHeader
+        title="Start"
+        subtitle="Select a study type to begin a timed read."
+      />
 
       {timer && (
-        <p className="text-sm text-muted">{timer.shortName} — timer running</p>
+        <p className="text-sm text-muted">Timer running — {timer.shortName}</p>
       )}
 
       {error && (
@@ -95,10 +153,10 @@ export function StartPageClient({ sections }: { sections: HomeSections }) {
         </p>
       )}
 
-      <div className="relative max-w-md">
+      <div className="relative max-w-lg">
         <Search
-          size={16}
-          className="absolute left-3 top-1/2 -translate-y-1/2 text-muted"
+          size={18}
+          className="absolute left-4 top-1/2 -translate-y-1/2 text-muted"
           aria-hidden="true"
         />
         <Input
@@ -106,7 +164,7 @@ export function StartPageClient({ sections }: { sections: HomeSections }) {
           onChange={(e) => setQuery(e.target.value)}
           placeholder="Search study types..."
           aria-label="Search study types"
-          className="pl-9"
+          className="h-12 rounded-lg pl-11 text-md"
         />
       </div>
 
@@ -115,19 +173,20 @@ export function StartPageClient({ sections }: { sections: HomeSections }) {
           <h2 className="mb-3 text-sm font-semibold text-foreground">
             Search results
           </h2>
-          <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
-            {searchResults.length === 0 && (
-              <p className="text-sm text-muted">No matches.</p>
-            )}
-            {searchResults.map((s) => (
-              <StudyButton
-                key={s.id}
-                study={s}
-                disabled={disabled || pendingId === s.id}
-                onStart={handleStart}
-              />
-            ))}
-          </div>
+          {searchResults.length === 0 ? (
+            <p className="text-sm text-muted">No matches.</p>
+          ) : (
+            <ViewportGrid fitContent>
+              {searchResults.map((s) => (
+                <FavoriteTile
+                  key={s.id}
+                  study={s}
+                  disabled={disabled || pendingId === s.id}
+                  onStart={handleStart}
+                />
+              ))}
+            </ViewportGrid>
+          )}
         </section>
       ) : (
         <>
@@ -136,53 +195,49 @@ export function StartPageClient({ sections }: { sections: HomeSections }) {
               <h2 className="mb-3 text-sm font-semibold text-foreground">
                 Favorites
               </h2>
-              <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
+              <ViewportGrid fitContent>
                 {sections.favorites.map((s) => (
-                  <StudyButton
+                  <FavoriteTile
                     key={s.id}
                     study={s}
                     disabled={disabled || pendingId === s.id}
                     onStart={handleStart}
                   />
                 ))}
-              </div>
+              </ViewportGrid>
             </section>
           )}
 
-          {sections.frequent.length > 0 && (
-            <section>
-              <h2 className="mb-3 text-sm font-semibold text-foreground">
-                Frequently used
-              </h2>
-              <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
-                {sections.frequent.map((s) => (
-                  <StudyButton
-                    key={s.id}
-                    study={s}
-                    disabled={disabled || pendingId === s.id}
+          {(sections.frequent.length > 0 || sections.recent.length > 0) && (
+            <div className="grid gap-8 sm:grid-cols-2">
+              {sections.frequent.length > 0 && (
+                <section>
+                  <h2 className="mb-1 text-sm font-semibold text-foreground">
+                    Frequently used
+                  </h2>
+                  <StudyRowList
+                    studies={sections.frequent}
+                    disabled={disabled}
+                    pendingId={pendingId}
                     onStart={handleStart}
                   />
-                ))}
-              </div>
-            </section>
-          )}
+                </section>
+              )}
 
-          {sections.recent.length > 0 && (
-            <section>
-              <h2 className="mb-3 text-sm font-semibold text-foreground">
-                Recent
-              </h2>
-              <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
-                {sections.recent.map((s) => (
-                  <StudyButton
-                    key={s.id}
-                    study={s}
-                    disabled={disabled || pendingId === s.id}
+              {sections.recent.length > 0 && (
+                <section>
+                  <h2 className="mb-1 text-sm font-semibold text-foreground">
+                    Recent
+                  </h2>
+                  <StudyRowList
+                    studies={sections.recent}
+                    disabled={disabled}
+                    pendingId={pendingId}
                     onStart={handleStart}
                   />
-                ))}
-              </div>
-            </section>
+                </section>
+              )}
+            </div>
           )}
 
           <section>
@@ -198,25 +253,28 @@ export function StartPageClient({ sections }: { sections: HomeSections }) {
                 .
               </p>
             )}
-            <div className="flex flex-col gap-4">
+            <div className="flex flex-col divide-y divide-border rounded-lg border border-border">
               {sections.all.map((modalityGroup) => (
                 <details
                   key={modalityGroup.modality}
-                  className="rounded-md border border-border"
-                  open
+                  className="group px-4 py-1 open:pb-3"
                 >
-                  <summary className="cursor-pointer px-4 py-2.5 text-sm font-semibold text-foreground focus-visible:outline-none">
+                  <summary className="cursor-pointer list-none py-2 text-sm font-semibold text-foreground focus-visible:outline-none">
                     {modalityGroup.modality}
                   </summary>
-                  <div className="flex flex-col gap-3 px-4 pb-4">
+                  <div className="flex flex-col gap-3 pt-1">
                     {modalityGroup.regions.map((region) => (
-                      <details key={region.bodyRegion} open>
-                        <summary className="cursor-pointer py-1 text-xs font-medium uppercase tracking-wide text-muted focus-visible:outline-none">
+                      <div key={region.bodyRegion}>
+                        <p className="py-1 text-xs font-medium text-muted">
                           {region.bodyRegion}
-                        </summary>
-                        <div className="mt-2 grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
+                        </p>
+                        <div
+                          className={cn(
+                            "flex flex-col divide-y divide-border pl-2",
+                          )}
+                        >
                           {region.studyTypes.map((s) => (
-                            <StudyButton
+                            <StudyRow
                               key={s.id}
                               study={s}
                               disabled={disabled || pendingId === s.id}
@@ -224,7 +282,7 @@ export function StartPageClient({ sections }: { sections: HomeSections }) {
                             />
                           ))}
                         </div>
-                      </details>
+                      </div>
                     ))}
                   </div>
                 </details>
@@ -232,17 +290,6 @@ export function StartPageClient({ sections }: { sections: HomeSections }) {
             </div>
           </section>
         </>
-      )}
-
-      {timer && (
-        <Button
-          type="button"
-          variant="secondary"
-          onClick={() => router.refresh()}
-          className="self-start"
-        >
-          Refresh
-        </Button>
       )}
     </div>
   );

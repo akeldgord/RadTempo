@@ -27,6 +27,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent } from "@/components/ui/card";
+import { useDialogFocusReturn } from "@/hooks/use-dialog-focus-return";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -50,8 +51,20 @@ const MODALITY_SUGGESTIONS = [
   "Fluoro",
 ];
 
-function groupKey(s: StudyType) {
-  return `${s.modality} · ${s.bodyRegion}`;
+/** Hierarchical grouping: modality, then body region within it. */
+function groupByModality(items: StudyType[]) {
+  const byModality = new Map<string, Map<string, StudyType[]>>();
+  for (const s of items) {
+    const regions =
+      byModality.get(s.modality) ?? new Map<string, StudyType[]>();
+    const list = regions.get(s.bodyRegion) ?? [];
+    list.push(s);
+    regions.set(s.bodyRegion, list);
+    byModality.set(s.modality, regions);
+  }
+  return [...byModality.entries()].map(
+    ([modality, regions]) => [modality, [...regions.entries()]] as const,
+  );
 }
 
 export function StudiesClient({
@@ -80,6 +93,13 @@ export function StudiesClient({
     count: number;
   } | null>(null);
   const [archivedOpen, setArchivedOpen] = useState(false);
+  // Shared by both the delete and archive AlertDialogs below: only one of
+  // the two is ever open at a time (openArchiveOrDeleteConfirm picks
+  // exactly one), so one captured trigger is enough for both.
+  const {
+    capture: captureRowActionTrigger,
+    restoreFocus: restoreRowActionFocus,
+  } = useDialogFocusReturn();
   /** timing counts per study type id, fetched to decide whether a row's
    * action button reads "Archive" (has timings) or "Delete" (none). */
   const [counts, setCounts] = useState<Record<string, number>>({});
@@ -116,16 +136,10 @@ export function StudiesClient({
     [studyTypes],
   );
 
-  const groups = useMemo(() => {
-    const map = new Map<string, StudyType[]>();
-    for (const s of activeStudyTypes) {
-      const key = groupKey(s);
-      const list = map.get(key) ?? [];
-      list.push(s);
-      map.set(key, list);
-    }
-    return [...map.entries()];
-  }, [activeStudyTypes]);
+  const groups = useMemo(
+    () => groupByModality(activeStudyTypes),
+    [activeStudyTypes],
+  );
 
   function resetForm() {
     setForm({ modality: "CT", bodyRegion: "", name: "", shortName: "" });
@@ -179,6 +193,7 @@ export function StudiesClient({
   /** Studies with recorded cases are archived, not deleted, so history and
    * analytics are kept; only a study with zero timings can be deleted. */
   async function openArchiveOrDeleteConfirm(s: StudyType) {
+    captureRowActionTrigger();
     const result = await countStudyTypeTimingsAction(s.id);
     const count = result.ok ? result.data : 0;
     if (count > 0) {
@@ -225,10 +240,12 @@ export function StudiesClient({
 
   return (
     <div className="flex flex-col gap-6">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-semibold text-foreground">Studies</h1>
-          <p className="text-sm text-muted">
+          <h1 className="text-2xl font-bold tracking-tight text-foreground sm:text-3xl">
+            Studies
+          </h1>
+          <p className="mt-1 text-sm text-muted">
             Rename, reorder, favorite, or add your own study types.
           </p>
         </div>
@@ -319,31 +336,42 @@ export function StudiesClient({
         </Card>
       )}
 
-      {groups.map(([key, items]) => (
-        <section key={key}>
-          <h2 className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted">
-            {key}
+      {groups.map(([modality, regions]) => (
+        <section key={modality} className="border-t border-border pt-5">
+          <h2 className="mb-3 text-base font-semibold text-foreground">
+            {modality}
           </h2>
-          <ul className="flex flex-col gap-1.5">
-            {items
-              .sort((a, b) => a.sortOrder - b.sortOrder)
-              .map((s) => (
-                <li key={s.id}>
-                  <StudyRow
-                    study={s}
-                    hasTimings={(counts[s.id] ?? 0) > 0}
-                    editing={editingId === s.id}
-                    onEdit={() => setEditingId(s.id)}
-                    onCancelEdit={() => setEditingId(null)}
-                    onSave={(patch) => handleUpdate(s.id, patch)}
-                    onToggleFavorite={() => handleToggleFavorite(s)}
-                    onMoveUp={() => handleMove(s, -1)}
-                    onMoveDown={() => handleMove(s, 1)}
-                    onArchiveOrDelete={() => openArchiveOrDeleteConfirm(s)}
-                  />
-                </li>
-              ))}
-          </ul>
+          <div className="flex flex-col gap-4 pl-0 sm:pl-4">
+            {regions.map(([region, items]) => (
+              <div key={region}>
+                <h3 className="mb-1.5 text-xs font-medium text-muted">
+                  {region}
+                </h3>
+                <ul className="flex flex-col divide-y divide-border border-y border-border">
+                  {items
+                    .sort((a, b) => a.sortOrder - b.sortOrder)
+                    .map((s) => (
+                      <li key={s.id}>
+                        <StudyRow
+                          study={s}
+                          hasTimings={(counts[s.id] ?? 0) > 0}
+                          editing={editingId === s.id}
+                          onEdit={() => setEditingId(s.id)}
+                          onCancelEdit={() => setEditingId(null)}
+                          onSave={(patch) => handleUpdate(s.id, patch)}
+                          onToggleFavorite={() => handleToggleFavorite(s)}
+                          onMoveUp={() => handleMove(s, -1)}
+                          onMoveDown={() => handleMove(s, 1)}
+                          onArchiveOrDelete={() =>
+                            openArchiveOrDeleteConfirm(s)
+                          }
+                        />
+                      </li>
+                    ))}
+                </ul>
+              </div>
+            ))}
+          </div>
         </section>
       ))}
 
@@ -353,7 +381,7 @@ export function StudiesClient({
             type="button"
             onClick={() => setArchivedOpen((v) => !v)}
             aria-expanded={archivedOpen}
-            className="mb-2 flex items-center gap-1 text-xs font-semibold uppercase tracking-wide text-muted hover:text-foreground"
+            className="mb-2 flex items-center gap-1 text-sm font-semibold text-muted hover:text-foreground"
           >
             <ChevronDown
               size={14}
@@ -363,11 +391,11 @@ export function StudiesClient({
             Archived ({archivedStudyTypes.length})
           </button>
           {archivedOpen && (
-            <ul className="flex flex-col gap-1.5">
+            <ul className="flex flex-col divide-y divide-border border-y border-border">
               {archivedStudyTypes.map((s) => (
                 <li
                   key={s.id}
-                  className="flex items-center justify-between gap-2 rounded-md border border-border bg-card px-3 py-2"
+                  className="flex items-center justify-between gap-2 px-1 py-2.5"
                 >
                   <div>
                     <p className="text-sm font-medium text-foreground">
@@ -394,7 +422,7 @@ export function StudiesClient({
         open={!!deleteTarget}
         onOpenChange={(open) => !open && setDeleteTarget(null)}
       >
-        <AlertDialogContent>
+        <AlertDialogContent onCloseAutoFocus={restoreRowActionFocus}>
           <AlertDialogHeader>
             <AlertDialogTitle>Delete {deleteTarget?.name}?</AlertDialogTitle>
             <AlertDialogDescription>
@@ -415,7 +443,7 @@ export function StudiesClient({
         open={!!archiveTarget}
         onOpenChange={(open) => !open && setArchiveTarget(null)}
       >
-        <AlertDialogContent>
+        <AlertDialogContent onCloseAutoFocus={restoreRowActionFocus}>
           <AlertDialogHeader>
             <AlertDialogTitle>Archive {archiveTarget?.name}?</AlertDialogTitle>
             <AlertDialogDescription>
@@ -427,7 +455,7 @@ export function StudiesClient({
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction onClick={handleArchive}>
+            <AlertDialogAction variant="danger-outline" onClick={handleArchive}>
               Archive
             </AlertDialogAction>
           </AlertDialogFooter>
@@ -465,7 +493,7 @@ function StudyRow({
 
   if (editing) {
     return (
-      <div className="flex flex-wrap items-center gap-2 rounded-md border border-border bg-card p-3">
+      <div className="flex flex-wrap items-center gap-2 bg-muted-bg px-1 py-3">
         <Input
           value={name}
           onChange={(e) => setName(e.target.value)}
@@ -501,7 +529,7 @@ function StudyRow({
   }
 
   return (
-    <div className="flex items-center justify-between gap-2 rounded-md border border-border bg-card px-3 py-2">
+    <div className="flex items-center justify-between gap-2 px-1 py-2.5 transition-colors hover:bg-muted-bg">
       <div className="flex items-center gap-3">
         <button
           type="button"
@@ -551,7 +579,7 @@ function StudyRow({
         </Button>
         <Button
           type="button"
-          variant="ghost"
+          variant={hasTimings ? "danger-outline" : "danger"}
           size="sm"
           title={
             hasTimings
@@ -564,7 +592,7 @@ function StudyRow({
           {hasTimings ? (
             <Archive size={14} aria-hidden="true" />
           ) : (
-            <Trash2 size={14} aria-hidden="true" className="text-danger" />
+            <Trash2 size={14} aria-hidden="true" />
           )}
         </Button>
       </div>

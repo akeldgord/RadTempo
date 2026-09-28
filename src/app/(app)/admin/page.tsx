@@ -15,6 +15,7 @@ import { EmailSection } from "./email-section";
 import { BackupSection } from "./backup-section";
 import { TelemetrySection } from "./telemetry-section";
 import { SystemSection } from "./system-section";
+import { PageHeader } from "@/components/page-header";
 
 export default async function AdminPage() {
   let currentAdminId: string;
@@ -39,14 +40,12 @@ export default async function AdminPage() {
     ]);
 
   return (
-    <div className="flex flex-col gap-8">
-      <div>
-        <h1 className="text-2xl font-semibold text-foreground">Admin</h1>
-        <p className="mt-1 text-sm text-muted">
-          Account management, instance settings, and backups. The admin UI never
-          shows any user&apos;s performance or timing data.
-        </p>
-      </div>
+    <div className="flex flex-col gap-0">
+      <PageHeader
+        title="Admin"
+        subtitle="Account management, instance settings, and backups. The admin UI never shows any user's performance or timing data."
+        className="pb-6"
+      />
 
       <UsersSection
         users={users}

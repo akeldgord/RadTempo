@@ -51,30 +51,30 @@ export const ACHIEVEMENT_DEFINITIONS: Record<
   },
   study_50: {
     key: "study_50",
-    title: "50 of one study type",
+    title: "50 reads",
     description:
-      "You've read 50 cases of this study type, building a deep personal baseline for it.",
+      "You've built a deep personal baseline for this study type — 50 cases of history to compare against.",
     perStudy: true,
   },
   first_established_benchmark: {
     key: "first_established_benchmark",
-    title: "First established benchmark",
+    title: "Established benchmark",
     description:
-      "One of your study types now has enough history for an established personal benchmark.",
+      "This study type now has enough history for an established personal benchmark.",
     perStudy: true,
   },
   improvement_5: {
     key: "improvement_5",
     title: "Sustained improvement",
     description:
-      "Your recent pace on this study type is at least 5% faster than your prior comparable pace.",
+      "Your recent pace is at least 5% faster than your prior comparable pace.",
     perStudy: true,
   },
   improvement_10: {
     key: "improvement_10",
     title: "Notable sustained improvement",
     description:
-      "Your recent pace on this study type is at least 10% faster than your prior comparable pace.",
+      "Your recent pace is at least 10% faster than your prior comparable pace.",
     perStudy: true,
   },
   reading_streak_5: {

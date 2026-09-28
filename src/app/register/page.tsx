@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import { hasAnyUsers } from "@/server/setup-status";
 import { getCurrentUser } from "@/server/auth-helpers";
+import { AuthHeader } from "@/components/auth-header";
 import { RegisterForm } from "./register-form";
 
 // See src/app/setup/page.tsx: the hasAnyUsers() check has no dynamic API
@@ -27,15 +28,10 @@ export default async function RegisterPage({
   return (
     <div className="flex flex-1 items-center justify-center px-4 py-16">
       <div className="w-full max-w-sm">
-        <div className="mb-8 text-center">
-          <h1 className="text-2xl font-semibold text-foreground">
-            Create your account
-          </h1>
-          <p className="mt-1 text-sm text-muted">
-            RadTempo measures your own reading pace over time. It does not
-            compare you with other radiologists.
-          </p>
-        </div>
+        <AuthHeader
+          title="Create your account"
+          description="Measures your own reading pace over time. It does not compare you with other radiologists."
+        />
         <RegisterForm inviteToken={invite} />
       </div>
     </div>

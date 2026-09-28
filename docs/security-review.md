@@ -42,9 +42,9 @@ Follow-up pass closing gaps found before allowing this instance to be exposed pu
 
 ### Launch gate
 
-Do **not** expose this instance publicly until:
+Public hosting approved by the owner on 2026-09-28 (after the PR #14
+re-audit). Before exposing an instance:
 
-- `next` and `eslint-config-next` are upgraded to `16.3.7` and `pnpm lint`/`pnpm build` are green on that version.
 - The production `.env` has been reviewed against this checklist:
   - A real, freshly generated `AUTH_SECRET` (not the example value).
   - A unique, strong `POSTGRES_PASSWORD` (not `changeme`).
@@ -52,3 +52,10 @@ Do **not** expose this instance publicly until:
   - `SETUP_TOKEN` set to a freshly generated value, and cleared/rotated after first-run setup completes.
   - The bundled Caddy overlay (`docker-compose.caddy.yml`) is used for TLS termination — the app container's port is never published directly to the host.
   - `postgres` remains unexposed (no host port published), as verified above.
+
+### Follow-up: Next.js 16.3.7
+
+No longer a launch prerequisite. When `next`/`eslint-config-next` `16.3.7`
+is published (not yet on npm as of 2026-09-28), apply it promptly as a
+security update: bump both packages, confirm `pnpm lint`/`pnpm build` and
+CI are green, then redeploy.
