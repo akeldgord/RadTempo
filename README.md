@@ -20,7 +20,7 @@ Time your reads, tag their complexity, and watch your own pace trend over time �
     <img src="docs/images/launch.gif" alt="RadTempo in 14 seconds: start a timed read with one click, finish it, classify its complexity, and see your pace against your own prior reads" width="100%">
   </a>
   <br>
-  <sub><a href="docs/media/radtempo-launch.mp4">Watch the full launch video with sound (22s)</a> · demo data is fictional</sub>
+  <sub><a href="docs/media/radtempo-launch.mp4">Watch the full launch video with sound (21s)</a> · demo data is fictional</sub>
 </p>
 
 RadTempo helps radiologists measure and improve their interpretation pace. Choose the type of examination you're about to read, start the timer, finish the case, and RadTempo builds a personal picture of how your reading pace changes over time. No patient information is needed or intended to be stored. Your benchmark is your own prior performance.
